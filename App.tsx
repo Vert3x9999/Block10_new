@@ -123,8 +123,12 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
 
+    // Add new record, sort descending by score, then by timestamp (newest first for ties)
     const newLeaderboard = [...leaderboard, newRecord]
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.timestamp - a.timestamp;
+      })
       .slice(0, 100); // Keep top 100
 
     setLeaderboard(newLeaderboard);
@@ -256,7 +260,7 @@ const App: React.FC = () => {
 
           setScore(newScore + multipliedBonus);
           setClearingLines(null);
-        }, 300);
+        }, 400); // Increased to 400ms to match animate-clear duration
       } else {
         setComboCount(0);
         playPlaceSound();
@@ -455,7 +459,7 @@ const App: React.FC = () => {
     if (!isDragging) setSelectedShapeIdx(null);
   };
 
-  // --- Tool Actions ---
+  // --- Tools Actions ---
 
   const handleUndo = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -781,7 +785,7 @@ const App: React.FC = () => {
                   key={`${r}-${c}`} 
                   className={`
                     relative w-full h-full
-                    ${isClearing ? 'scale-0 opacity-0' : ''}
+                    ${isClearing ? 'animate-clear z-10' : ''}
                     transition-all duration-300
                   `}
                 >
