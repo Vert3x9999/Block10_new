@@ -11,8 +11,6 @@ import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Pl
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
   shapeIdx: number;
-  startX: number;
-  startY: number;
   gridCellSize: number;
   trayCellSize: number;
   touchOffset: number;
@@ -297,7 +295,7 @@ const App: React.FC = () => {
     setHoverPos(null);
   };
 
-  // --- Drag & Drop Logic (Optimized) ---
+  // --- Drag & Drop Logic (Refined for Precision) ---
 
   const handleDragStart = (index: number, e: React.PointerEvent, trayCellSize: number) => {
     if (isGameOver || showResetConfirm) return;
@@ -310,25 +308,41 @@ const App: React.FC = () => {
     }
 
     const isTouch = e.pointerType === 'touch';
-    // Increased touch offset for better visibility on mobile
     const touchOffset = isTouch ? 100 : 0; 
 
-    const target = e.currentTarget as HTMLElement;
+    const target = e.currentTarget as HTMLElement; // The tray item div (w-20 h-20)
     const rect = target.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
     
-    // Store drag info in Ref to avoid re-renders during move
+    // Calculate shape dimensions in the tray
+    const shape = availableShapes[index];
+    const shapeCols = shape.matrix[0].length;
+    const shapeRows = shape.matrix.length;
+    const shapePixelWidth = shapeCols * trayCellSize;
+    const shapePixelHeight = shapeRows * trayCellSize;
+
+    // The shape is centered in the w-20 h-20 (80px x 80px) container using Flexbox
+    const containerSize = 80; // w-20 is 5rem = 80px default base
+    // Actually w-20 in tailwind default is 5rem = 80px.
+    // We can compute offset of shape Top-Left relative to container Top-Left
+    const offsetLeft = (rect.width - shapePixelWidth) / 2;
+    const offsetTop = (rect.height - shapePixelHeight) / 2;
+
+    // Absolute position of the shape's Top-Left on the screen
+    const shapeAbsLeft = rect.left + offsetLeft;
+    const shapeAbsTop = rect.top + offsetTop;
+
+    // Calculate grab offset relative to the SHAPE'S Top-Left (not container center)
+    const grabOffsetX = e.clientX - shapeAbsLeft;
+    const grabOffsetY = e.clientY - shapeAbsTop;
+    
     dragInfoRef.current = {
       shapeIdx: index,
-      startX: e.clientX,
-      startY: e.clientY,
       gridCellSize,
       trayCellSize,
       touchOffset,
       pointerId: e.pointerId,
-      grabOffsetX: e.clientX - centerX,
-      grabOffsetY: e.clientY - centerY
+      grabOffsetX,
+      grabOffsetY
     };
 
     setIsDragging(true);
@@ -338,8 +352,8 @@ const App: React.FC = () => {
     // Initialize floating shape position
     if (floatingShapeRef.current) {
       const scale = gridCellSize / trayCellSize;
-      const visualX = e.clientX - (dragInfoRef.current.grabOffsetX * scale);
-      const visualY = e.clientY - (dragInfoRef.current.grabOffsetY * scale) - touchOffset;
+      const visualX = e.clientX - (grabOffsetX * scale);
+      const visualY = e.clientY - (grabOffsetY * scale) - touchOffset;
       floatingShapeRef.current.style.transform = `translate(${visualX}px, ${visualY}px)`;
       floatingShapeRef.current.style.opacity = '1';
     }
@@ -352,51 +366,42 @@ const App: React.FC = () => {
 
     e.preventDefault();
 
-    const newX = e.clientX;
-    const newY = e.clientY;
+    const scale = dragInfo.gridCellSize / dragInfo.trayCellSize;
+    // visualX/Y represents the Top-Left coordinate of the floating shape
+    const visualX = e.clientX - (dragInfo.grabOffsetX * scale);
+    const visualY = e.clientY - (dragInfo.grabOffsetY * scale) - dragInfo.touchOffset;
     
     // Direct DOM manipulation for smooth 60fps dragging
     if (floatingShapeRef.current) {
-       const scale = dragInfo.gridCellSize / dragInfo.trayCellSize;
-       const visualX = newX - (dragInfo.grabOffsetX * scale);
-       const visualY = newY - (dragInfo.grabOffsetY * scale) - dragInfo.touchOffset;
        floatingShapeRef.current.style.transform = `translate(${visualX}px, ${visualY}px)`;
     }
 
-    // Logic for grid snapping (State update, throttled implicitly by React)
+    // Logic for grid snapping
     if (gridRef.current) {
-      const scale = dragInfo.gridCellSize / dragInfo.trayCellSize;
-      const visualX = newX - (dragInfo.grabOffsetX * scale);
-      const visualY = newY - (dragInfo.grabOffsetY * scale) - dragInfo.touchOffset;
-
       const rect = gridRef.current.getBoundingClientRect();
       const cellSize = rect.width / BOARD_SIZE;
       
       const shape = availableShapes[dragInfo.shapeIdx];
-      // Safety check if shape was removed
       if (!shape) return;
 
-      const shapeRows = shape.matrix.length;
-      const shapeCols = shape.matrix[0].length;
-
-      // Calculate center of the dragged shape
+      // Coordinate of the shape's Top-Left relative to the grid board
       const relX = visualX - rect.left;
       const relY = visualY - rect.top;
 
-      // Convert to grid coordinates (float)
+      // Convert to grid index (float)
       const pointerC = relX / cellSize;
       const pointerR = relY / cellSize;
 
-      // The shape's anchor is its top-left (0,0). 
-      // If we are dragging by center, we need to subtract half dimension to find top-left index.
-      const targetR = Math.round(pointerR - (shapeRows / 2));
-      const targetC = Math.round(pointerC - (shapeCols / 2));
+      // Since pointerC/R is the Top-Left, rounding it gives the nearest starting cell
+      const targetR = Math.round(pointerR);
+      const targetC = Math.round(pointerC);
 
       // Only update state if changed to avoid heavy diffing
       setHoverPos(prev => {
         if (prev?.r === targetR && prev?.c === targetC) return prev;
         
-        if (targetR >= -2 && targetR < BOARD_SIZE + 2 && targetC >= -2 && targetC < BOARD_SIZE + 2) {
+        // Allow slightly out of bounds for drag feeling, but clamp for valid checks later
+        if (targetR >= -5 && targetR < BOARD_SIZE + 5 && targetC >= -5 && targetC < BOARD_SIZE + 5) {
           return { r: targetR, c: targetC };
         }
         return null;
@@ -418,23 +423,16 @@ const App: React.FC = () => {
       const visualY = e.clientY - (dragInfo.grabOffsetY * scale) - dragInfo.touchOffset;
       const rect = gridRef.current.getBoundingClientRect();
       const cellSize = rect.width / BOARD_SIZE;
-      const shape = availableShapes[dragInfo.shapeIdx];
       
-      if (shape) {
-        const shapeRows = shape.matrix.length;
-        const shapeCols = shape.matrix[0].length;
-        const relX = visualX - rect.left;
-        const relY = visualY - rect.top;
-        const pointerC = relX / cellSize;
-        const pointerR = relY / cellSize;
-        dropR = Math.round(pointerR - (shapeRows / 2));
-        dropC = Math.round(pointerC - (shapeCols / 2));
-      }
+      const relX = visualX - rect.left;
+      const relY = visualY - rect.top;
+      
+      dropC = Math.round(relX / cellSize);
+      dropR = Math.round(relY / cellSize);
     }
 
-    if (dropR !== null && dropC !== null && 
-        dropR >= -2 && dropR < BOARD_SIZE + 2 && 
-        dropC >= -2 && dropC < BOARD_SIZE + 2) {
+    if (dropR !== null && dropC !== null) {
+        // Attempt place will handle bounds checking logic
         attemptPlaceShape(dragInfo.shapeIdx, dropR, dropC);
     }
     
@@ -442,7 +440,7 @@ const App: React.FC = () => {
     dragInfoRef.current = null;
     setIsDragging(false);
     setHoverPos(null);
-  }, [availableShapes, grid]);
+  }, [availableShapes]);
 
   useEffect(() => {
     if (isDragging) {
@@ -967,7 +965,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans select-none overflow-hidden text-slate-100">
+    <div className="bg-slate-950 min-h-screen text-slate-200 font-sans selection:bg-blue-500/30 touch-none overflow-hidden select-none overscroll-none">
       {view === 'home' && renderHome()}
       {view === 'leaderboard' && renderLeaderboard()}
       {view === 'game' && renderGame()}
