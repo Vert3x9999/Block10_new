@@ -194,6 +194,9 @@ const App: React.FC = () => {
 
   // --- Core Placement Logic ---
   const attemptPlaceShape = (shapeIdx: number, r: number, c: number) => {
+    // Extra safety check
+    if (clearingLines) return;
+    
     const shapeObj = availableShapes[shapeIdx];
     if (!shapeObj) return;
 
@@ -272,7 +275,7 @@ const App: React.FC = () => {
 
   // --- Click / Select Interactions ---
   const handleSelectShape = (index: number) => {
-    if (isGameOver || showResetConfirm) return;
+    if (isGameOver || showResetConfirm || clearingLines) return;
     setHint(null);
     setSelectedShapeIdx(prev => prev === index ? null : index);
   };
@@ -288,7 +291,7 @@ const App: React.FC = () => {
 
   const handleClickCell = (r: number, c: number) => {
     if (isDragging) return;
-    if (selectedShapeIdx === null || isGameOver || showResetConfirm) return;
+    if (selectedShapeIdx === null || isGameOver || showResetConfirm || clearingLines) return;
     
     attemptPlaceShape(selectedShapeIdx, r, c);
     setSelectedShapeIdx(null);
@@ -298,7 +301,7 @@ const App: React.FC = () => {
   // --- Drag & Drop Logic (Refined for Precision) ---
 
   const handleDragStart = (index: number, e: React.PointerEvent, trayCellSize: number) => {
-    if (isGameOver || showResetConfirm) return;
+    if (isGameOver || showResetConfirm || clearingLines) return;
 
     let gridCellSize = 0;
     if (gridRef.current) {
@@ -462,6 +465,7 @@ const App: React.FC = () => {
   const handleUndo = (e: React.MouseEvent) => {
     e.stopPropagation();
     // Allow undo on game over (removed isGameOver check)
+    // Prevent undo during clearing
     if (history.length === 0 || clearingLines || showResetConfirm) return;
     if (undoLeft <= 0) return;
 
@@ -502,7 +506,7 @@ const App: React.FC = () => {
 
   const handleHint = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isGameOver || availableShapes.length === 0 || showResetConfirm) return;
+    if (isGameOver || availableShapes.length === 0 || showResetConfirm || clearingLines) return;
     if (hintLeft <= 0) return;
 
     const bestMove = findBestMove(grid, availableShapes);
@@ -910,7 +914,7 @@ const App: React.FC = () => {
 
            <button 
               onClick={handleHint}
-              disabled={isGameOver || hint !== null || showResetConfirm || hintLeft <= 0}
+              disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || hintLeft <= 0}
               className="relative flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95"
             >
               <Lightbulb size={18} className={hint ? "fill-yellow-500" : ""} />
@@ -965,10 +969,10 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="bg-slate-950 min-h-screen text-slate-200 font-sans selection:bg-blue-500/30 touch-none overflow-hidden select-none overscroll-none">
-      {view === 'home' && renderHome()}
-      {view === 'leaderboard' && renderLeaderboard()}
-      {view === 'game' && renderGame()}
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500/30 touch-none overflow-hidden select-none">
+       {view === 'home' && renderHome()}
+       {view === 'leaderboard' && renderLeaderboard()}
+       {view === 'game' && renderGame()}
     </div>
   );
 };
