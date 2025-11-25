@@ -1,0 +1,848 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { GridType, ShapeObj, Position, GameState } from './types';
+import { SHAPE_COLORS, BOARD_SIZE, SHAPES } from './constants';
+import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove } from './utils/gameLogic';
+import { playPlaceSound, playClearSound, playGameOverSound } from './utils/soundEffects';
+import GridCell from './components/GridCell';
+import ShapeTray from './components/ShapeTray';
+import ShapeRenderer from './components/ShapeRenderer';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Play, Home, ListOrdered, ArrowLeft } from 'lucide-react';
+
+interface DragState {
+  shapeIdx: number;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  gridCellSize: number;
+  trayCellSize: number;
+  touchOffset: number; // Y-offset for mobile visibility
+  pointerId: number;
+  grabOffsetX: number;
+  grabOffsetY: number;
+}
+
+type ViewState = 'home' | 'game' | 'leaderboard';
+
+const App: React.FC = () => {
+  // --- View State ---
+  const [view, setView] = useState<ViewState>('home');
+
+  // --- Game State ---
+  const [grid, setGrid] = useState<GridType>(createEmptyGrid());
+  const [score, setScore] = useState<number>(0);
+  
+  // Leaderboard State
+  const [leaderboard, setLeaderboard] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('blockfit-leaderboard');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [availableShapes, setAvailableShapes] = useState<ShapeObj[]>([]);
+  const [selectedShapeIdx, setSelectedShapeIdx] = useState<number | null>(null);
+  const [hoverPos, setHoverPos] = useState<Position | null>(null);
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  const [clearingLines, setClearingLines] = useState<{rows: number[], cols: number[]} | null>(null);
+  const [placedAnimationCells, setPlacedAnimationCells] = useState<{r: number, c: number}[]>([]);
+  const [hint, setHint] = useState<{shapeIdx: number, r: number, c: number} | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+  const [comboCount, setComboCount] = useState<number>(0);
+
+  // --- Limits State ---
+  const [hintLeft, setHintLeft] = useState<number>(3);
+  const [undoLeft, setUndoLeft] = useState<number>(3);
+  const [redoLeft, setRedoLeft] = useState<number>(3);
+  
+  // Dragging State
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Undo/Redo Stacks
+  // We also need to track limits history to undo correctly, but typically undo counts don't reset on undo.
+  // For simplicity, we just restore game state, but we do NOT restore the 'count' of uses.
+  // Once a lifeline is used, it is gone.
+  const [history, setHistory] = useState<GameState[]>([]);
+  const [redoStack, setRedoStack] = useState<GameState[]>([]);
+
+  // --- Difficulty Logic ---
+  const getDifficultyPool = useCallback((currentScore: number) => {
+    return SHAPES;
+  }, []);
+
+  // --- Helpers ---
+  const generateNewShapes = useCallback(() => {
+    const newShapes: ShapeObj[] = [];
+    const shapePool = getDifficultyPool(score);
+
+    for (let i = 0; i < 3; i++) {
+      const randomShapeIdx = Math.floor(Math.random() * shapePool.length);
+      const randomColorIdx = Math.floor(Math.random() * SHAPE_COLORS.length);
+      newShapes.push({
+        id: Math.random().toString(36).substr(2, 9),
+        matrix: shapePool[randomShapeIdx],
+        color: SHAPE_COLORS[randomColorIdx],
+      });
+    }
+    setAvailableShapes(newShapes);
+    setHint(null);
+  }, [score, getDifficultyPool]);
+
+  const saveScoreToLeaderboard = (finalScore: number) => {
+    const newLeaderboard = [...leaderboard, finalScore]
+      .sort((a, b) => b - a)
+      .slice(0, 100); // Keep top 100 instead of 10
+    setLeaderboard(newLeaderboard);
+    localStorage.setItem('blockfit-leaderboard', JSON.stringify(newLeaderboard));
+  };
+
+  const startNewGame = () => {
+    setGrid(createEmptyGrid());
+    setScore(0);
+    setIsGameOver(false);
+    setSelectedShapeIdx(null);
+    setClearingLines(null);
+    setPlacedAnimationCells([]);
+    setHint(null);
+    setAvailableShapes([]); 
+    setHistory([]);
+    setRedoStack([]);
+    setComboCount(0);
+    setDragState(null);
+    
+    // Reset Limits
+    setHintLeft(3);
+    setUndoLeft(3);
+    setRedoLeft(3);
+
+    setView('game');
+  };
+
+  // --- Initialization ---
+  useEffect(() => {
+    if (view === 'game' && availableShapes.length === 0 && !isGameOver) {
+      generateNewShapes();
+    }
+  }, [view, availableShapes, isGameOver, generateNewShapes]);
+
+  // --- Game Over Check ---
+  useEffect(() => {
+    if (view !== 'game') return;
+    if (availableShapes.length === 0 && !clearingLines) return;
+
+    if (availableShapes.length > 0 && !clearingLines && !isGameOver) {
+      const matrices = availableShapes.map(s => s.matrix);
+      const over = checkGameOver(grid, matrices);
+      if (over) {
+        setIsGameOver(true);
+        saveScoreToLeaderboard(score);
+      }
+    }
+  }, [view, availableShapes, grid, clearingLines, isGameOver, score, leaderboard]);
+
+  useEffect(() => {
+    if (isGameOver) {
+      playGameOverSound();
+    }
+  }, [isGameOver]);
+
+  // --- Core Placement Logic ---
+  const attemptPlaceShape = (shapeIdx: number, r: number, c: number) => {
+    const shapeObj = availableShapes[shapeIdx];
+    if (!shapeObj) return;
+
+    const canPlace = canPlaceShape(grid, shapeObj.matrix, { r, c });
+
+    if (canPlace) {
+      // Save State
+      const currentState: GameState = {
+        grid,
+        score,
+        availableShapes,
+        isGameOver,
+        comboCount
+      };
+      setHistory(prev => [...prev, currentState]);
+      setRedoStack([]);
+
+      setHint(null);
+
+      // Place
+      const newGrid = placeShapeOnGrid(grid, shapeObj.matrix, { r, c }, shapeObj.color);
+      
+      // Animation cells
+      const justPlaced: {r: number, c: number}[] = [];
+      shapeObj.matrix.forEach((row, dr) => {
+        row.forEach((val, dc) => {
+          if (val === 1) {
+            justPlaced.push({r: r + dr, c: c + dc});
+          }
+        });
+      });
+      setPlacedAnimationCells(justPlaced);
+      setTimeout(() => setPlacedAnimationCells([]), 400);
+
+      const blocksCount = shapeObj.matrix.flat().reduce((acc, val) => acc + val, 0);
+      
+      // Increased scoring: 50 points per block placed
+      let newScore = score + (blocksCount * 50);
+
+      const { rowIndices, colIndices } = findClearedLines(newGrid);
+
+      if (rowIndices.length > 0 || colIndices.length > 0) {
+        const newCombo = comboCount + 1;
+        setComboCount(newCombo);
+        playClearSound(rowIndices.length + colIndices.length);
+
+        setGrid(newGrid);
+        setClearingLines({ rows: rowIndices, cols: colIndices });
+        
+        // Remove shape
+        const nextShapes = availableShapes.filter((_, idx) => idx !== shapeIdx);
+        setAvailableShapes(nextShapes);
+
+        setTimeout(() => {
+          const clearedGrid = clearLines(newGrid, rowIndices, colIndices);
+          setGrid(clearedGrid);
+          
+          const totalLines = rowIndices.length + colIndices.length;
+          // Massive scoring for lines
+          const baseLineBonus = (totalLines * 1000) + (totalLines > 1 ? (totalLines - 1) * 500 : 0);
+          const multipliedBonus = baseLineBonus * newCombo;
+
+          setScore(newScore + multipliedBonus);
+          setClearingLines(null);
+        }, 300);
+      } else {
+        setComboCount(0);
+        playPlaceSound();
+        setGrid(newGrid);
+        setScore(newScore);
+        const nextShapes = availableShapes.filter((_, idx) => idx !== shapeIdx);
+        setAvailableShapes(nextShapes);
+      }
+    }
+  };
+
+  // --- Click / Select Interactions ---
+  const handleSelectShape = (index: number) => {
+    if (isGameOver || showResetConfirm) return;
+    setHint(null);
+    setSelectedShapeIdx(prev => prev === index ? null : index);
+  };
+
+  const handleMouseEnterCell = (r: number, c: number) => {
+    if (dragState) return; 
+    if (selectedShapeIdx === null) {
+      setHoverPos(null);
+      return;
+    }
+    setHoverPos({ r, c });
+  };
+
+  const handleClickCell = (r: number, c: number) => {
+    if (dragState) return;
+    if (selectedShapeIdx === null || isGameOver || showResetConfirm) return;
+    
+    attemptPlaceShape(selectedShapeIdx, r, c);
+    setSelectedShapeIdx(null);
+    setHoverPos(null);
+  };
+
+  // --- Drag & Drop Logic ---
+
+  const handleDragStart = (index: number, e: React.PointerEvent, trayCellSize: number) => {
+    if (isGameOver || showResetConfirm) return;
+
+    let gridCellSize = 0;
+    if (gridRef.current) {
+      gridCellSize = gridRef.current.getBoundingClientRect().width / BOARD_SIZE;
+    } else {
+      gridCellSize = 35; // Fallback
+    }
+
+    const isTouch = e.pointerType === 'touch';
+    const touchOffset = isTouch ? 90 : 0; 
+
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const grabOffsetX = e.clientX - centerX;
+    const grabOffsetY = e.clientY - centerY;
+
+    setDragState({
+      shapeIdx: index,
+      startX: e.clientX,
+      startY: e.clientY,
+      currentX: e.clientX,
+      currentY: e.clientY,
+      gridCellSize,
+      trayCellSize,
+      touchOffset,
+      pointerId: e.pointerId,
+      grabOffsetX,
+      grabOffsetY
+    });
+
+    setSelectedShapeIdx(index);
+    setHint(null);
+  };
+
+  const handlePointerMove = useCallback((e: PointerEvent) => {
+    if (!dragState) return;
+    if (e.pointerId !== dragState.pointerId) return;
+
+    e.preventDefault();
+
+    const newX = e.clientX;
+    const newY = e.clientY;
+    
+    if (gridRef.current) {
+      const scale = dragState.gridCellSize / dragState.trayCellSize;
+      const visualX = newX - (dragState.grabOffsetX * scale);
+      const visualY = newY - (dragState.grabOffsetY * scale) - dragState.touchOffset;
+
+      const rect = gridRef.current.getBoundingClientRect();
+      const cellSize = rect.width / BOARD_SIZE;
+      
+      const shape = availableShapes[dragState.shapeIdx];
+      const shapeRows = shape.matrix.length;
+      const shapeCols = shape.matrix[0].length;
+
+      const relX = visualX - rect.left;
+      const relY = visualY - rect.top;
+
+      const pointerC = relX / cellSize;
+      const pointerR = relY / cellSize;
+
+      const targetR = Math.round(pointerR - (shapeRows / 2));
+      const targetC = Math.round(pointerC - (shapeCols / 2));
+
+      if (targetR >= -2 && targetR < BOARD_SIZE + 2 && targetC >= -2 && targetC < BOARD_SIZE + 2) {
+         setHoverPos({ r: targetR, c: targetC });
+      } else {
+         setHoverPos(null);
+      }
+    }
+
+    setDragState(prev => prev ? { ...prev, currentX: newX, currentY: newY } : null);
+  }, [dragState, availableShapes]);
+
+  const handlePointerUp = useCallback((e: PointerEvent) => {
+    if (!dragState) return;
+    if (e.pointerId !== dragState.pointerId) return;
+
+    const dist = Math.sqrt(
+      Math.pow(e.clientX - dragState.startX, 2) + 
+      Math.pow(e.clientY - dragState.startY, 2)
+    );
+
+    if (dist < 10) {
+      // Tap
+    } else {
+      // Drag
+      if (hoverPos) {
+        attemptPlaceShape(dragState.shapeIdx, hoverPos.r, hoverPos.c);
+        setSelectedShapeIdx(null); 
+      } else {
+        setSelectedShapeIdx(null); 
+      }
+    }
+
+    setDragState(null);
+    setHoverPos(null);
+  }, [dragState, hoverPos]); // Added attemptPlaceShape dependency implicitly
+
+  useEffect(() => {
+    if (dragState) {
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+    }
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [dragState, handlePointerMove, handlePointerUp]);
+
+  const handleBackgroundClick = () => {
+    if (!dragState) setSelectedShapeIdx(null);
+  };
+
+  // --- Tool Actions ---
+
+  const handleUndo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (history.length === 0 || clearingLines || showResetConfirm || isGameOver) return;
+    if (undoLeft <= 0) return;
+
+    const previousState = history[history.length - 1];
+    setRedoStack([...redoStack, { grid, score, availableShapes, isGameOver, comboCount }]);
+    setGrid(previousState.grid);
+    setScore(previousState.score);
+    setAvailableShapes(previousState.availableShapes);
+    setIsGameOver(previousState.isGameOver);
+    setComboCount(previousState.comboCount);
+    setHistory(history.slice(0, -1));
+    setSelectedShapeIdx(null);
+    setHint(null);
+    setUndoLeft(prev => prev - 1);
+  };
+
+  const handleRedo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (redoStack.length === 0 || clearingLines || showResetConfirm || isGameOver) return;
+    if (redoLeft <= 0) return;
+
+    const nextState = redoStack[redoStack.length - 1];
+    setHistory([...history, { grid, score, availableShapes, isGameOver, comboCount }]);
+    setGrid(nextState.grid);
+    setScore(nextState.score);
+    setAvailableShapes(nextState.availableShapes);
+    setIsGameOver(nextState.isGameOver);
+    setComboCount(nextState.comboCount);
+    setRedoStack(redoStack.slice(0, -1));
+    setSelectedShapeIdx(null);
+    setHint(null);
+    setRedoLeft(prev => prev - 1);
+  };
+
+  const handleHint = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isGameOver || availableShapes.length === 0 || showResetConfirm) return;
+    if (hintLeft <= 0) return;
+
+    const bestMove = findBestMove(grid, availableShapes);
+    if (bestMove) {
+      setHint(bestMove);
+      setHintLeft(prev => prev - 1);
+    }
+  };
+
+  const handleNewGameClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isEmpty = grid.every(row => row.every(cell => cell === null));
+    if (isGameOver || (score === 0 && isEmpty)) {
+      startNewGame();
+      return;
+    }
+    setShowResetConfirm(true);
+  };
+
+  const confirmReset = () => {
+    startNewGame();
+    setShowResetConfirm(false);
+  };
+
+  const exitToHome = () => {
+    setView('home');
+    setShowResetConfirm(false);
+  };
+
+  // --- Render Helpers ---
+
+  const getGhostCells = () => {
+    const activeShapeIdx = dragState ? dragState.shapeIdx : selectedShapeIdx;
+    if (activeShapeIdx === null || !hoverPos) return [];
+    
+    const shape = availableShapes[activeShapeIdx];
+    const cells: {r: number, c: number, color: string, valid: boolean}[] = [];
+    const valid = canPlaceShape(grid, shape.matrix, hoverPos);
+    
+    shape.matrix.forEach((row, dr) => {
+      row.forEach((val, dc) => {
+        if (val === 1) {
+          const targetR = hoverPos.r + dr;
+          const targetC = hoverPos.c + dc;
+          if (targetR >= 0 && targetR < BOARD_SIZE && targetC >= 0 && targetC < BOARD_SIZE) {
+            cells.push({
+               r: targetR, 
+               c: targetC, 
+               color: shape.color, 
+               valid 
+            });
+          }
+        }
+      });
+    });
+    return cells;
+  };
+
+  const getHintCells = () => {
+    if (!hint) return [];
+    const shape = availableShapes[hint.shapeIdx];
+    if (!shape) return [];
+    const cells: {r: number, c: number, color: string}[] = [];
+    shape.matrix.forEach((row, dr) => {
+      row.forEach((val, dc) => {
+        if (val === 1) cells.push({ r: hint.r + dr, c: hint.c + dc, color: shape.color });
+      });
+    });
+    return cells;
+  };
+
+  const ghostCells = getGhostCells();
+  const hintCells = getHintCells();
+
+  const getDragStyle = () => {
+    if (!dragState) return {};
+    const scale = dragState.gridCellSize / dragState.trayCellSize;
+    const visualX = dragState.currentX - (dragState.grabOffsetX * scale);
+    const visualY = dragState.currentY - (dragState.grabOffsetY * scale) - dragState.touchOffset;
+    
+    return {
+      position: 'fixed' as const, 
+      left: visualX, 
+      top: visualY,
+      transform: 'translate(-50%, -50%)', 
+      pointerEvents: 'none' as const,
+      zIndex: 50
+    };
+  };
+
+  // --- Views ---
+
+  const renderHome = () => (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8 p-4 animate-in fade-in duration-500 relative">
+      <div className="text-center space-y-2">
+        <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+          BlockFit
+        </h1>
+        <p className="text-slate-400 text-sm tracking-[0.3em] uppercase font-semibold">
+          10x10 Puzzle
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4 w-full max-w-xs">
+        <button 
+          onClick={startNewGame}
+          className="group relative flex items-center justify-center gap-3 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
+        >
+          <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Play fill="currentColor" size={24} />
+          START GAME
+        </button>
+
+        <button 
+          onClick={() => setView('leaderboard')}
+          className="group flex items-center justify-center gap-3 w-full py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-lg border border-slate-700 transition-all hover:scale-105 active:scale-95"
+        >
+          <Trophy size={24} className="text-yellow-500" />
+          RANKING
+        </button>
+      </div>
+
+      <div className="absolute bottom-10 text-slate-600 text-xs text-center">
+        Block fitting puzzle • No time limit • Combo system
+      </div>
+      
+      <div className="absolute bottom-4 text-slate-500 text-[10px] font-mono opacity-60">
+        Author: Vertex Wei
+      </div>
+    </div>
+  );
+
+  const renderLeaderboard = () => (
+    <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
+      <div className="w-full flex items-center justify-between mb-8">
+        <button 
+          onClick={() => setView('home')}
+          className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <ListOrdered className="text-purple-500" />
+          Leaderboard
+        </h2>
+        <div className="w-10"></div> {/* Spacer */}
+      </div>
+
+      <div className="w-full bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-800 flex flex-col max-h-[70vh]">
+        {leaderboard.length === 0 ? (
+          <div className="text-center py-12 text-slate-500 italic">
+            No scores yet. Play a game!
+          </div>
+        ) : (
+          <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+            {leaderboard.map((s, i) => (
+              <div 
+                key={i}
+                className={`flex items-center justify-between p-3 rounded-xl ${
+                  i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/30' : 
+                  i === 1 ? 'bg-slate-800/80 border border-slate-700' :
+                  i === 2 ? 'bg-slate-800/50 border border-slate-800' : 'bg-transparent border-b border-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                   <div className={`
+                     w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shrink-0
+                     ${i === 0 ? 'bg-yellow-500 text-black' : 
+                       i === 1 ? 'bg-slate-400 text-black' :
+                       i === 2 ? 'bg-orange-700 text-white' : 'text-slate-500'}
+                   `}>
+                     {i + 1}
+                   </div>
+                   <span className="text-slate-300 font-mono text-lg">{s.toLocaleString()}</span>
+                </div>
+                {i === 0 && <Trophy size={16} className="text-yellow-500" />}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderGame = () => (
+    <div 
+      className="flex flex-col items-center justify-center p-4 w-full max-w-lg mx-auto"
+      onClick={handleBackgroundClick}
+    >
+      {/* Header */}
+      <div className="w-full flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowResetConfirm(true)}
+            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-slate-700"
+          >
+            <Home size={18} />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 leading-none">
+              BlockFit
+            </h1>
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-end relative">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Current Score</span>
+          <div className="flex items-center gap-2">
+            <span className="text-white font-mono font-bold text-3xl leading-none tracking-tight">{score.toLocaleString()}</span>
+            {comboCount > 1 && (
+              <div className="absolute right-0 top-full mt-1 flex items-center gap-1 text-yellow-400 animate-pulse whitespace-nowrap">
+                  <Zap size={12} className="fill-yellow-400" />
+                  <span className="text-xs font-bold italic tracking-wider">x{comboCount}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Container */}
+      <div 
+        ref={gridRef}
+        className="relative bg-slate-900 p-3 rounded-xl shadow-2xl shadow-black ring-1 ring-slate-800 touch-none mb-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div 
+          className="grid gap-1"
+          style={{ 
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
+            width: 'min(85vw, 380px)',
+            height: 'min(85vw, 380px)',
+          }}
+          onMouseLeave={() => !dragState && setHoverPos(null)}
+        >
+          {grid.map((row, r) => (
+            row.map((cellColor, c) => {
+              const isClearing = clearingLines && (clearingLines.rows.includes(r) || clearingLines.cols.includes(c));
+              const isPlacement = placedAnimationCells.some(p => p.r === r && p.c === c);
+              
+              const ghost = ghostCells.find(g => g.r === r && g.c === c);
+              const hintCell = hintCells.find(h => h.r === r && h.c === c);
+              
+              let displayColor = cellColor;
+              let isGhost = false;
+              let isHint = false;
+              let isValid = true;
+
+              if (ghost) {
+                if (!cellColor) {
+                  displayColor = ghost.color;
+                  isGhost = true;
+                  isValid = ghost.valid;
+                }
+              } else if (hintCell && !cellColor && selectedShapeIdx === null && !dragState) {
+                displayColor = hintCell.color;
+                isHint = true;
+              }
+
+              return (
+                <div 
+                  key={`${r}-${c}`} 
+                  className={`
+                    relative w-full h-full
+                    ${isClearing ? 'scale-0 opacity-0' : ''}
+                    transition-all duration-300
+                  `}
+                >
+                   <GridCell 
+                      color={displayColor}
+                      isGhost={isGhost}
+                      isHint={isHint}
+                      isPlacement={isPlacement}
+                      isValid={isValid}
+                      onClick={() => handleClickCell(r, c)}
+                      onMouseEnter={() => handleMouseEnterCell(r, c)}
+                   />
+                </div>
+              );
+            })
+          ))}
+        </div>
+
+        {/* Reset Confirmation Overlay */}
+        {showResetConfirm && (
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-30 p-6 text-center animate-in fade-in duration-200">
+            <h2 className="text-xl font-bold text-white mb-2">Quit Game?</h2>
+            <p className="text-slate-400 mb-6 text-sm">Progress will be lost.</p>
+            <div className="flex flex-col gap-3 w-full">
+              <button 
+                onClick={confirmReset}
+                className="w-full py-3 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg"
+              >
+                Restart
+              </button>
+              <button 
+                onClick={exitToHome}
+                className="w-full py-3 rounded-lg font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+              >
+                Exit to Home
+              </button>
+              <button 
+                onClick={() => setShowResetConfirm(false)}
+                className="w-full py-3 rounded-lg font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Game Over Overlay */}
+        {isGameOver && (
+          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300">
+            <AlertCircle size={48} className="text-red-500 mb-4" />
+            <h2 className="text-3xl font-black text-white mb-2">GAME OVER</h2>
+            <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700 mb-8 flex flex-col items-center">
+              <span className="text-slate-400 text-xs uppercase font-bold tracking-wider">Final Score</span>
+              <span className="text-3xl font-mono text-white">{score.toLocaleString()}</span>
+            </div>
+            
+            <div className="flex flex-col gap-3 w-3/4">
+              <button 
+                onClick={handleUndo}
+                disabled={history.length === 0 || undoLeft <= 0}
+                className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+              >
+                <RotateCcw size={18} />
+                Undo Last Move {undoLeft > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{undoLeft}</span>}
+              </button>
+              <button 
+                onClick={startNewGame}
+                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/25 active:scale-95"
+              >
+                <RefreshCw size={18} />
+                Try Again
+              </button>
+              <button 
+                onClick={exitToHome}
+                className="text-slate-500 hover:text-white text-sm font-bold py-2 transition-colors"
+              >
+                Back to Menu
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tools & Shape Tray */}
+      <div className="w-full max-w-md flex flex-col gap-4">
+         <div className="flex justify-between items-center px-4">
+           
+           <div className="flex gap-4">
+             <button 
+               onClick={handleUndo} 
+               disabled={history.length === 0 || !!clearingLines || showResetConfirm || isGameOver || undoLeft <= 0}
+               className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
+               title="Undo"
+             >
+               <RotateCcw size={20} />
+               <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
+                 {undoLeft}
+               </span>
+             </button>
+             
+             <button 
+               onClick={handleRedo} 
+               disabled={redoStack.length === 0 || !!clearingLines || showResetConfirm || isGameOver || redoLeft <= 0}
+               className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
+               title="Redo"
+             >
+               <RotateCw size={20} />
+               <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
+                 {redoLeft}
+               </span>
+             </button>
+           </div>
+
+           <button 
+              onClick={handleHint}
+              disabled={isGameOver || hint !== null || showResetConfirm || hintLeft <= 0}
+              className="relative flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95"
+            >
+              <Lightbulb size={18} className={hint ? "fill-yellow-500" : ""} />
+              <span className="font-bold text-sm">HINT</span>
+              <span className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                 {hintLeft}
+               </span>
+            </button>
+        </div>
+        
+        <div className="bg-slate-900/50 rounded-2xl border border-slate-800/50 pb-2">
+          <ShapeTray 
+            shapes={availableShapes} 
+            selectedIndex={selectedShapeIdx} 
+            draggingIndex={dragState ? dragState.shapeIdx : null}
+            onSelectShape={handleSelectShape} 
+            onDragStart={handleDragStart}
+          />
+        </div>
+
+        {hint !== null && !dragState && (
+          <div className="text-center text-xs text-yellow-500 animate-pulse font-bold">
+             Check the board!
+          </div>
+        )}
+      </div>
+
+      {/* Floating Shape when dragging */}
+      {dragState && (
+        <div 
+          style={getDragStyle()}
+        >
+           <ShapeRenderer 
+             matrix={availableShapes[dragState.shapeIdx].matrix} 
+             color={availableShapes[dragState.shapeIdx].color} 
+             cellSize={dragState.gridCellSize} // Render at same scale as grid
+             className="drop-shadow-2xl opacity-90"
+           />
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-950 font-sans select-none overflow-hidden text-slate-100">
+      {view === 'home' && renderHome()}
+      {view === 'leaderboard' && renderLeaderboard()}
+      {view === 'game' && renderGame()}
+    </div>
+  );
+};
+
+export default App;
