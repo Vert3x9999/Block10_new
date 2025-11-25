@@ -1,5 +1,5 @@
 {
-  "name": "Copy of block10",
+  "name": "block10",
   "description": "A 10x10 block puzzle game where you place random shapes to clear lines and score points.",
   "requestFramePermissions": []
 }
