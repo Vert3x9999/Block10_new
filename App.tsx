@@ -6,7 +6,7 @@ import { playPlaceSound, playClearSound, playGameOverSound } from './utils/sound
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Play, Home, ListOrdered, ArrowLeft, History } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown } from 'lucide-react';
 
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
@@ -21,6 +21,11 @@ interface DragInfo {
   grabOffsetY: number;
 }
 
+interface ScoreRecord {
+  score: number;
+  timestamp: number;
+}
+
 type ViewState = 'home' | 'game' | 'leaderboard';
 
 const App: React.FC = () => {
@@ -30,12 +35,26 @@ const App: React.FC = () => {
   // --- Game State ---
   const [grid, setGrid] = useState<GridType>(createEmptyGrid());
   const [score, setScore] = useState<number>(0);
+  const [isNewHighScore, setIsNewHighScore] = useState<boolean>(false);
   
   // Leaderboard State (Local Only)
-  const [leaderboard, setLeaderboard] = useState<number[]>(() => {
+  const [leaderboard, setLeaderboard] = useState<ScoreRecord[]>(() => {
     try {
       const saved = localStorage.getItem('blockfit-leaderboard');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      
+      const parsed = JSON.parse(saved);
+      
+      // Migration: If old format (number[]), convert to ScoreRecord[]
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'number') {
+        const migrated = parsed.map((s: number) => ({
+          score: s,
+          timestamp: Date.now() // Use current time for legacy scores
+        }));
+        return migrated;
+      }
+      
+      return parsed;
     } catch (e) {
       return [];
     }
@@ -90,17 +109,32 @@ const App: React.FC = () => {
   }, [score, getDifficultyPool]);
 
   const saveScoreToLeaderboard = (finalScore: number) => {
-    const saved = localStorage.getItem('blockfit-leaderboard');
-    let localScores: number[] = saved ? JSON.parse(saved) : [];
-    
-    // Check if we should add this score (optional: only add if > 0)
-    if (finalScore > 0) {
-      localScores.push(finalScore);
-      localScores.sort((a, b) => b - a);
-      localScores = localScores.slice(0, 100); // Keep top 100 personal scores
+    // Only save significant scores
+    if (finalScore === 0) return;
 
-      localStorage.setItem('blockfit-leaderboard', JSON.stringify(localScores));
-      setLeaderboard(localScores);
+    // Check if it's a new high score
+    const currentBest = leaderboard.length > 0 ? leaderboard[0].score : 0;
+    if (finalScore > currentBest) {
+      setIsNewHighScore(true);
+    }
+
+    const newRecord: ScoreRecord = {
+      score: finalScore,
+      timestamp: Date.now()
+    };
+
+    const newLeaderboard = [...leaderboard, newRecord]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 100); // Keep top 100
+
+    setLeaderboard(newLeaderboard);
+    localStorage.setItem('blockfit-leaderboard', JSON.stringify(newLeaderboard));
+  };
+
+  const clearLeaderboard = () => {
+    if (confirm('Are you sure you want to clear all history?')) {
+      setLeaderboard([]);
+      localStorage.removeItem('blockfit-leaderboard');
     }
   };
 
@@ -108,6 +142,7 @@ const App: React.FC = () => {
     setGrid(createEmptyGrid());
     setScore(0);
     setIsGameOver(false);
+    setIsNewHighScore(false);
     setSelectedShapeIdx(null);
     setClearingLines(null);
     setPlacedAnimationCells([]);
@@ -436,6 +471,7 @@ const App: React.FC = () => {
     setScore(previousState.score);
     setAvailableShapes(previousState.availableShapes);
     setIsGameOver(previousState.isGameOver); // This will revive the game if it was over
+    setIsNewHighScore(false); // Reset high score flag on undo
     setComboCount(previousState.comboCount);
     
     setHistory(history.slice(0, -1));
@@ -597,7 +633,18 @@ const App: React.FC = () => {
           <ListOrdered className="text-purple-500" />
           My Best Scores
         </h2>
-        <div className="w-10"></div> {/* Spacer */}
+        
+        {leaderboard.length > 0 ? (
+          <button 
+            onClick={clearLeaderboard}
+            className="p-2 bg-slate-800 rounded-lg text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+            title="Clear History"
+          >
+            <Trash2 size={20} />
+          </button>
+        ) : (
+          <div className="w-10"></div>
+        )}
       </div>
 
       <div className="w-full bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-800 flex flex-col max-h-[70vh]">
@@ -609,34 +656,48 @@ const App: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar">
-            {leaderboard.map((s, i) => (
-              <div 
-                key={i}
-                className={`flex items-center justify-between p-3 rounded-xl ${
-                  i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/30' : 
-                  i === 1 ? 'bg-slate-800/80 border border-slate-700' :
-                  i === 2 ? 'bg-slate-800/50 border border-slate-800' : 'bg-transparent border-b border-slate-800'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                   <div className={`
-                     w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shrink-0
-                     ${i === 0 ? 'bg-yellow-500 text-black' : 
-                       i === 1 ? 'bg-slate-400 text-black' :
-                       i === 2 ? 'bg-orange-700 text-white' : 'text-slate-500'}
-                   `}>
-                     {i + 1}
-                   </div>
-                   <span className="text-slate-300 font-mono text-lg">{s.toLocaleString()}</span>
+            {leaderboard.map((record, i) => {
+              const dateObj = new Date(record.timestamp);
+              const dateStr = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+              const timeStr = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+              return (
+                <div 
+                  key={i}
+                  className={`flex items-center justify-between p-3 rounded-xl ${
+                    i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/30' : 
+                    i === 1 ? 'bg-slate-800/80 border border-slate-700' :
+                    i === 2 ? 'bg-slate-800/50 border border-slate-800' : 'bg-transparent border-b border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                     <div className={`
+                       w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shrink-0
+                       ${i === 0 ? 'bg-yellow-500 text-black' : 
+                         i === 1 ? 'bg-slate-400 text-black' :
+                         i === 2 ? 'bg-orange-700 text-white' : 'text-slate-500'}
+                     `}>
+                       {i + 1}
+                     </div>
+                     <div className="flex flex-col">
+                        <span className="text-slate-200 font-mono text-lg leading-tight">{record.score.toLocaleString()}</span>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                          <Calendar size={10} />
+                          <span>{dateStr}</span>
+                          <span className="opacity-50">|</span>
+                          <span>{timeStr}</span>
+                        </div>
+                     </div>
+                  </div>
+                  {i === 0 && <Trophy size={16} className="text-yellow-500" />}
                 </div>
-                {i === 0 && <Trophy size={16} className="text-yellow-500" />}
-              </div>
-            ))}
-            <div className="text-center text-xs text-slate-600 mt-4 pt-4 border-t border-slate-800">
-              * Stored on local device
-            </div>
+              );
+            })}
           </div>
         )}
+      </div>
+      <div className="text-center text-xs text-slate-600 mt-4">
+         * Records are stored locally on your device browser.
       </div>
     </div>
   );
@@ -770,11 +831,22 @@ const App: React.FC = () => {
         {/* Game Over Overlay */}
         {isGameOver && (
           <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300">
-            <AlertCircle size={48} className="text-red-500 mb-4" />
+            {isNewHighScore ? (
+              <div className="flex flex-col items-center animate-bounce mb-2">
+                <Crown size={48} className="text-yellow-400 fill-yellow-400/20" />
+                <span className="text-yellow-400 font-black tracking-widest text-lg drop-shadow-glow">NEW BEST!</span>
+              </div>
+            ) : (
+              <AlertCircle size={48} className="text-red-500 mb-4" />
+            )}
+            
             <h2 className="text-3xl font-black text-white mb-2">GAME OVER</h2>
-            <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700 mb-8 flex flex-col items-center">
+            <div className={`
+              px-6 py-3 rounded-xl border mb-8 flex flex-col items-center
+              ${isNewHighScore ? 'bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-slate-800/50 border-slate-700'}
+            `}>
               <span className="text-slate-400 text-xs uppercase font-bold tracking-wider">Final Score</span>
-              <span className="text-3xl font-mono text-white">{score.toLocaleString()}</span>
+              <span className={`text-3xl font-mono ${isNewHighScore ? 'text-yellow-400' : 'text-white'}`}>{score.toLocaleString()}</span>
             </div>
             
             <div className="flex flex-col gap-3 w-3/4">
