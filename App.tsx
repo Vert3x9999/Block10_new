@@ -6,17 +6,16 @@ import { playPlaceSound, playClearSound, playGameOverSound } from './utils/sound
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Play, Home, ListOrdered, ArrowLeft } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Play, Home, ListOrdered, ArrowLeft, History } from 'lucide-react';
 
-interface DragState {
+// Static dragging info that doesn't trigger re-renders
+interface DragInfo {
   shapeIdx: number;
   startX: number;
   startY: number;
-  currentX: number;
-  currentY: number;
   gridCellSize: number;
   trayCellSize: number;
-  touchOffset: number; // Y-offset for mobile visibility
+  touchOffset: number;
   pointerId: number;
   grabOffsetX: number;
   grabOffsetY: number;
@@ -32,7 +31,7 @@ const App: React.FC = () => {
   const [grid, setGrid] = useState<GridType>(createEmptyGrid());
   const [score, setScore] = useState<number>(0);
   
-  // Leaderboard State
+  // Leaderboard State (Local Only)
   const [leaderboard, setLeaderboard] = useState<number[]>(() => {
     try {
       const saved = localStorage.getItem('blockfit-leaderboard');
@@ -57,14 +56,13 @@ const App: React.FC = () => {
   const [undoLeft, setUndoLeft] = useState<number>(3);
   const [redoLeft, setRedoLeft] = useState<number>(3);
   
-  // Dragging State
-  const [dragState, setDragState] = useState<DragState | null>(null);
+  // Dragging Refs (Optimization: Don't use State for high-frequency updates)
+  const dragInfoRef = useRef<DragInfo | null>(null);
+  const floatingShapeRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false); // Only for UI visibility toggles
 
   // Undo/Redo Stacks
-  // We also need to track limits history to undo correctly, but typically undo counts don't reset on undo.
-  // For simplicity, we just restore game state, but we do NOT restore the 'count' of uses.
-  // Once a lifeline is used, it is gone.
   const [history, setHistory] = useState<GameState[]>([]);
   const [redoStack, setRedoStack] = useState<GameState[]>([]);
 
@@ -92,11 +90,18 @@ const App: React.FC = () => {
   }, [score, getDifficultyPool]);
 
   const saveScoreToLeaderboard = (finalScore: number) => {
-    const newLeaderboard = [...leaderboard, finalScore]
-      .sort((a, b) => b - a)
-      .slice(0, 100); // Keep top 100 instead of 10
-    setLeaderboard(newLeaderboard);
-    localStorage.setItem('blockfit-leaderboard', JSON.stringify(newLeaderboard));
+    const saved = localStorage.getItem('blockfit-leaderboard');
+    let localScores: number[] = saved ? JSON.parse(saved) : [];
+    
+    // Check if we should add this score (optional: only add if > 0)
+    if (finalScore > 0) {
+      localScores.push(finalScore);
+      localScores.sort((a, b) => b - a);
+      localScores = localScores.slice(0, 100); // Keep top 100 personal scores
+
+      localStorage.setItem('blockfit-leaderboard', JSON.stringify(localScores));
+      setLeaderboard(localScores);
+    }
   };
 
   const startNewGame = () => {
@@ -111,7 +116,8 @@ const App: React.FC = () => {
     setHistory([]);
     setRedoStack([]);
     setComboCount(0);
-    setDragState(null);
+    dragInfoRef.current = null;
+    setIsDragging(false);
     
     // Reset Limits
     setHintLeft(3);
@@ -141,7 +147,7 @@ const App: React.FC = () => {
         saveScoreToLeaderboard(score);
       }
     }
-  }, [view, availableShapes, grid, clearingLines, isGameOver, score, leaderboard]);
+  }, [view, availableShapes, grid, clearingLines, isGameOver, score]);
 
   useEffect(() => {
     if (isGameOver) {
@@ -235,7 +241,7 @@ const App: React.FC = () => {
   };
 
   const handleMouseEnterCell = (r: number, c: number) => {
-    if (dragState) return; 
+    if (isDragging) return; 
     if (selectedShapeIdx === null) {
       setHoverPos(null);
       return;
@@ -244,7 +250,7 @@ const App: React.FC = () => {
   };
 
   const handleClickCell = (r: number, c: number) => {
-    if (dragState) return;
+    if (isDragging) return;
     if (selectedShapeIdx === null || isGameOver || showResetConfirm) return;
     
     attemptPlaceShape(selectedShapeIdx, r, c);
@@ -252,7 +258,7 @@ const App: React.FC = () => {
     setHoverPos(null);
   };
 
-  // --- Drag & Drop Logic ---
+  // --- Drag & Drop Logic (Optimized) ---
 
   const handleDragStart = (index: number, e: React.PointerEvent, trayCellSize: number) => {
     if (isGameOver || showResetConfirm) return;
@@ -265,100 +271,142 @@ const App: React.FC = () => {
     }
 
     const isTouch = e.pointerType === 'touch';
-    const touchOffset = isTouch ? 90 : 0; 
+    // Increased touch offset for better visibility on mobile
+    const touchOffset = isTouch ? 100 : 0; 
 
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    const grabOffsetX = e.clientX - centerX;
-    const grabOffsetY = e.clientY - centerY;
-
-    setDragState({
+    
+    // Store drag info in Ref to avoid re-renders during move
+    dragInfoRef.current = {
       shapeIdx: index,
       startX: e.clientX,
       startY: e.clientY,
-      currentX: e.clientX,
-      currentY: e.clientY,
       gridCellSize,
       trayCellSize,
       touchOffset,
       pointerId: e.pointerId,
-      grabOffsetX,
-      grabOffsetY
-    });
+      grabOffsetX: e.clientX - centerX,
+      grabOffsetY: e.clientY - centerY
+    };
 
+    setIsDragging(true);
     setSelectedShapeIdx(index);
     setHint(null);
+    
+    // Initialize floating shape position
+    if (floatingShapeRef.current) {
+      const scale = gridCellSize / trayCellSize;
+      const visualX = e.clientX - (dragInfoRef.current.grabOffsetX * scale);
+      const visualY = e.clientY - (dragInfoRef.current.grabOffsetY * scale) - touchOffset;
+      floatingShapeRef.current.style.transform = `translate(${visualX}px, ${visualY}px)`;
+      floatingShapeRef.current.style.opacity = '1';
+    }
   };
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
-    if (!dragState) return;
-    if (e.pointerId !== dragState.pointerId) return;
+    const dragInfo = dragInfoRef.current;
+    if (!dragInfo) return;
+    if (e.pointerId !== dragInfo.pointerId) return;
 
     e.preventDefault();
 
     const newX = e.clientX;
     const newY = e.clientY;
     
+    // Direct DOM manipulation for smooth 60fps dragging
+    if (floatingShapeRef.current) {
+       const scale = dragInfo.gridCellSize / dragInfo.trayCellSize;
+       const visualX = newX - (dragInfo.grabOffsetX * scale);
+       const visualY = newY - (dragInfo.grabOffsetY * scale) - dragInfo.touchOffset;
+       floatingShapeRef.current.style.transform = `translate(${visualX}px, ${visualY}px)`;
+    }
+
+    // Logic for grid snapping (State update, throttled implicitly by React)
     if (gridRef.current) {
-      const scale = dragState.gridCellSize / dragState.trayCellSize;
-      const visualX = newX - (dragState.grabOffsetX * scale);
-      const visualY = newY - (dragState.grabOffsetY * scale) - dragState.touchOffset;
+      const scale = dragInfo.gridCellSize / dragInfo.trayCellSize;
+      const visualX = newX - (dragInfo.grabOffsetX * scale);
+      const visualY = newY - (dragInfo.grabOffsetY * scale) - dragInfo.touchOffset;
 
       const rect = gridRef.current.getBoundingClientRect();
       const cellSize = rect.width / BOARD_SIZE;
       
-      const shape = availableShapes[dragState.shapeIdx];
+      const shape = availableShapes[dragInfo.shapeIdx];
+      // Safety check if shape was removed
+      if (!shape) return;
+
       const shapeRows = shape.matrix.length;
       const shapeCols = shape.matrix[0].length;
 
+      // Calculate center of the dragged shape
       const relX = visualX - rect.left;
       const relY = visualY - rect.top;
 
+      // Convert to grid coordinates (float)
       const pointerC = relX / cellSize;
       const pointerR = relY / cellSize;
 
+      // The shape's anchor is its top-left (0,0). 
+      // If we are dragging by center, we need to subtract half dimension to find top-left index.
       const targetR = Math.round(pointerR - (shapeRows / 2));
       const targetC = Math.round(pointerC - (shapeCols / 2));
 
-      if (targetR >= -2 && targetR < BOARD_SIZE + 2 && targetC >= -2 && targetC < BOARD_SIZE + 2) {
-         setHoverPos({ r: targetR, c: targetC });
-      } else {
-         setHoverPos(null);
-      }
+      // Only update state if changed to avoid heavy diffing
+      setHoverPos(prev => {
+        if (prev?.r === targetR && prev?.c === targetC) return prev;
+        
+        if (targetR >= -2 && targetR < BOARD_SIZE + 2 && targetC >= -2 && targetC < BOARD_SIZE + 2) {
+          return { r: targetR, c: targetC };
+        }
+        return null;
+      });
     }
-
-    setDragState(prev => prev ? { ...prev, currentX: newX, currentY: newY } : null);
-  }, [dragState, availableShapes]);
+  }, [availableShapes]);
 
   const handlePointerUp = useCallback((e: PointerEvent) => {
-    if (!dragState) return;
-    if (e.pointerId !== dragState.pointerId) return;
+    const dragInfo = dragInfoRef.current;
+    if (!dragInfo) return;
+    if (e.pointerId !== dragInfo.pointerId) return;
 
-    const dist = Math.sqrt(
-      Math.pow(e.clientX - dragState.startX, 2) + 
-      Math.pow(e.clientY - dragState.startY, 2)
-    );
+    let dropR: number | null = null;
+    let dropC: number | null = null;
 
-    if (dist < 10) {
-      // Tap
-    } else {
-      // Drag
-      if (hoverPos) {
-        attemptPlaceShape(dragState.shapeIdx, hoverPos.r, hoverPos.c);
-        setSelectedShapeIdx(null); 
-      } else {
-        setSelectedShapeIdx(null); 
+    if (gridRef.current) {
+      const scale = dragInfo.gridCellSize / dragInfo.trayCellSize;
+      const visualX = e.clientX - (dragInfo.grabOffsetX * scale);
+      const visualY = e.clientY - (dragInfo.grabOffsetY * scale) - dragInfo.touchOffset;
+      const rect = gridRef.current.getBoundingClientRect();
+      const cellSize = rect.width / BOARD_SIZE;
+      const shape = availableShapes[dragInfo.shapeIdx];
+      
+      if (shape) {
+        const shapeRows = shape.matrix.length;
+        const shapeCols = shape.matrix[0].length;
+        const relX = visualX - rect.left;
+        const relY = visualY - rect.top;
+        const pointerC = relX / cellSize;
+        const pointerR = relY / cellSize;
+        dropR = Math.round(pointerR - (shapeRows / 2));
+        dropC = Math.round(pointerC - (shapeCols / 2));
       }
     }
 
-    setDragState(null);
+    if (dropR !== null && dropC !== null && 
+        dropR >= -2 && dropR < BOARD_SIZE + 2 && 
+        dropC >= -2 && dropC < BOARD_SIZE + 2) {
+        attemptPlaceShape(dragInfo.shapeIdx, dropR, dropC);
+    }
+    
+    setSelectedShapeIdx(null); 
+    dragInfoRef.current = null;
+    setIsDragging(false);
     setHoverPos(null);
-  }, [dragState, hoverPos]); // Added attemptPlaceShape dependency implicitly
+  }, [availableShapes, grid]);
 
   useEffect(() => {
-    if (dragState) {
+    if (isDragging) {
       window.addEventListener('pointermove', handlePointerMove);
       window.addEventListener('pointerup', handlePointerUp);
     }
@@ -366,26 +414,30 @@ const App: React.FC = () => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [dragState, handlePointerMove, handlePointerUp]);
+  }, [isDragging, handlePointerMove, handlePointerUp]);
 
   const handleBackgroundClick = () => {
-    if (!dragState) setSelectedShapeIdx(null);
+    if (!isDragging) setSelectedShapeIdx(null);
   };
 
   // --- Tool Actions ---
 
   const handleUndo = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (history.length === 0 || clearingLines || showResetConfirm || isGameOver) return;
+    // Allow undo on game over (removed isGameOver check)
+    if (history.length === 0 || clearingLines || showResetConfirm) return;
     if (undoLeft <= 0) return;
 
     const previousState = history[history.length - 1];
     setRedoStack([...redoStack, { grid, score, availableShapes, isGameOver, comboCount }]);
+    
+    // Restore logic
     setGrid(previousState.grid);
     setScore(previousState.score);
     setAvailableShapes(previousState.availableShapes);
-    setIsGameOver(previousState.isGameOver);
+    setIsGameOver(previousState.isGameOver); // This will revive the game if it was over
     setComboCount(previousState.comboCount);
+    
     setHistory(history.slice(0, -1));
     setSelectedShapeIdx(null);
     setHint(null);
@@ -445,10 +497,13 @@ const App: React.FC = () => {
   // --- Render Helpers ---
 
   const getGhostCells = () => {
-    const activeShapeIdx = dragState ? dragState.shapeIdx : selectedShapeIdx;
+    const activeShapeIdx = isDragging && dragInfoRef.current ? dragInfoRef.current.shapeIdx : selectedShapeIdx;
+    
     if (activeShapeIdx === null || !hoverPos) return [];
     
     const shape = availableShapes[activeShapeIdx];
+    if (!shape) return [];
+
     const cells: {r: number, c: number, color: string, valid: boolean}[] = [];
     const valid = canPlaceShape(grid, shape.matrix, hoverPos);
     
@@ -487,22 +542,6 @@ const App: React.FC = () => {
   const ghostCells = getGhostCells();
   const hintCells = getHintCells();
 
-  const getDragStyle = () => {
-    if (!dragState) return {};
-    const scale = dragState.gridCellSize / dragState.trayCellSize;
-    const visualX = dragState.currentX - (dragState.grabOffsetX * scale);
-    const visualY = dragState.currentY - (dragState.grabOffsetY * scale) - dragState.touchOffset;
-    
-    return {
-      position: 'fixed' as const, 
-      left: visualX, 
-      top: visualY,
-      transform: 'translate(-50%, -50%)', 
-      pointerEvents: 'none' as const,
-      zIndex: 50
-    };
-  };
-
   // --- Views ---
 
   const renderHome = () => (
@@ -530,8 +569,8 @@ const App: React.FC = () => {
           onClick={() => setView('leaderboard')}
           className="group flex items-center justify-center gap-3 w-full py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-lg border border-slate-700 transition-all hover:scale-105 active:scale-95"
         >
-          <Trophy size={24} className="text-yellow-500" />
-          RANKING
+          <History size={24} className="text-yellow-500" />
+          MY RECORDS
         </button>
       </div>
 
@@ -556,15 +595,17 @@ const App: React.FC = () => {
         </button>
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
           <ListOrdered className="text-purple-500" />
-          Leaderboard
+          My Best Scores
         </h2>
         <div className="w-10"></div> {/* Spacer */}
       </div>
 
       <div className="w-full bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-800 flex flex-col max-h-[70vh]">
         {leaderboard.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 italic">
-            No scores yet. Play a game!
+          <div className="text-center py-12 text-slate-500 italic flex flex-col items-center gap-4">
+            <Trophy size={48} className="text-slate-700" />
+            <p>No games played on this device yet.</p>
+            <p className="text-sm">Start a game to set a record!</p>
           </div>
         ) : (
           <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar">
@@ -591,6 +632,9 @@ const App: React.FC = () => {
                 {i === 0 && <Trophy size={16} className="text-yellow-500" />}
               </div>
             ))}
+            <div className="text-center text-xs text-slate-600 mt-4 pt-4 border-t border-slate-800">
+              * Stored on local device
+            </div>
           </div>
         )}
       </div>
@@ -645,7 +689,7 @@ const App: React.FC = () => {
             width: 'min(85vw, 380px)',
             height: 'min(85vw, 380px)',
           }}
-          onMouseLeave={() => !dragState && setHoverPos(null)}
+          onMouseLeave={() => !isDragging && setHoverPos(null)}
         >
           {grid.map((row, r) => (
             row.map((cellColor, c) => {
@@ -666,7 +710,7 @@ const App: React.FC = () => {
                   isGhost = true;
                   isValid = ghost.valid;
                 }
-              } else if (hintCell && !cellColor && selectedShapeIdx === null && !dragState) {
+              } else if (hintCell && !cellColor && selectedShapeIdx === null && !isDragging) {
                 displayColor = hintCell.color;
                 isHint = true;
               }
@@ -767,7 +811,7 @@ const App: React.FC = () => {
            <div className="flex gap-4">
              <button 
                onClick={handleUndo} 
-               disabled={history.length === 0 || !!clearingLines || showResetConfirm || isGameOver || undoLeft <= 0}
+               disabled={history.length === 0 || !!clearingLines || showResetConfirm || undoLeft <= 0}
                className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
                title="Undo"
              >
@@ -807,32 +851,42 @@ const App: React.FC = () => {
           <ShapeTray 
             shapes={availableShapes} 
             selectedIndex={selectedShapeIdx} 
-            draggingIndex={dragState ? dragState.shapeIdx : null}
+            draggingIndex={isDragging && dragInfoRef.current ? dragInfoRef.current.shapeIdx : null}
             onSelectShape={handleSelectShape} 
             onDragStart={handleDragStart}
           />
         </div>
 
-        {hint !== null && !dragState && (
+        {hint !== null && !isDragging && (
           <div className="text-center text-xs text-yellow-500 animate-pulse font-bold">
              Check the board!
           </div>
         )}
       </div>
 
-      {/* Floating Shape when dragging */}
-      {dragState && (
-        <div 
-          style={getDragStyle()}
-        >
+      {/* Floating Shape when dragging - Optimized with ref */}
+      <div 
+        ref={floatingShapeRef}
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          transform: 'translate(0,0)',
+          pointerEvents: 'none',
+          zIndex: 50,
+          opacity: 0, // Hidden initially until positioned
+          transformOrigin: '50% 50%'
+        }}
+      >
+        {isDragging && dragInfoRef.current && (
            <ShapeRenderer 
-             matrix={availableShapes[dragState.shapeIdx].matrix} 
-             color={availableShapes[dragState.shapeIdx].color} 
-             cellSize={dragState.gridCellSize} // Render at same scale as grid
+             matrix={availableShapes[dragInfoRef.current.shapeIdx].matrix} 
+             color={availableShapes[dragInfoRef.current.shapeIdx].color} 
+             cellSize={dragInfoRef.current.gridCellSize}
              className="drop-shadow-2xl opacity-90"
            />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 
