@@ -193,7 +193,8 @@ const App: React.FC = () => {
   }, [isGameOver]);
 
   // --- Core Placement Logic ---
-  const attemptPlaceShape = (shapeIdx: number, r: number, c: number) => {
+  // Memoized to prevent stale closures in event handlers
+  const attemptPlaceShape = useCallback((shapeIdx: number, r: number, c: number) => {
     // Extra safety check
     if (clearingLines) return;
     
@@ -271,7 +272,7 @@ const App: React.FC = () => {
         setAvailableShapes(nextShapes);
       }
     }
-  };
+  }, [grid, availableShapes, clearingLines, score, comboCount, isGameOver]);
 
   // --- Click / Select Interactions ---
   const handleSelectShape = (index: number) => {
@@ -289,14 +290,14 @@ const App: React.FC = () => {
     setHoverPos({ r, c });
   };
 
-  const handleClickCell = (r: number, c: number) => {
+  const handleClickCell = useCallback((r: number, c: number) => {
     if (isDragging) return;
     if (selectedShapeIdx === null || isGameOver || showResetConfirm || clearingLines) return;
     
     attemptPlaceShape(selectedShapeIdx, r, c);
     setSelectedShapeIdx(null);
     setHoverPos(null);
-  };
+  }, [isDragging, selectedShapeIdx, isGameOver, showResetConfirm, clearingLines, attemptPlaceShape]);
 
   // --- Drag & Drop Logic (Refined for Precision) ---
 
@@ -416,6 +417,15 @@ const App: React.FC = () => {
     const dragInfo = dragInfoRef.current;
     if (!dragInfo) return;
     if (e.pointerId !== dragInfo.pointerId) return;
+    
+    // Safety check: Prevent dropping if clearing is in progress
+    if (clearingLines) {
+        setSelectedShapeIdx(null);
+        dragInfoRef.current = null;
+        setIsDragging(false);
+        setHoverPos(null);
+        return;
+    }
 
     let dropR: number | null = null;
     let dropC: number | null = null;
@@ -443,7 +453,7 @@ const App: React.FC = () => {
     dragInfoRef.current = null;
     setIsDragging(false);
     setHoverPos(null);
-  }, [availableShapes]);
+  }, [availableShapes, clearingLines, attemptPlaceShape]);
 
   useEffect(() => {
     if (isDragging) {
@@ -710,7 +720,7 @@ const App: React.FC = () => {
 
   const renderGame = () => (
     <div 
-      className="flex flex-col items-center justify-center p-4 w-full max-w-lg mx-auto"
+      className="flex flex-col items-center justify-center min-h-screen p-4 w-full max-w-lg mx-auto"
       onClick={handleBackgroundClick}
     >
       {/* Header */}
@@ -969,10 +979,10 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500/30 touch-none overflow-hidden select-none">
-       {view === 'home' && renderHome()}
-       {view === 'leaderboard' && renderLeaderboard()}
-       {view === 'game' && renderGame()}
+    <div className="bg-slate-950 min-h-screen text-slate-200 font-sans selection:bg-blue-500/30 touch-none overflow-hidden">
+      {view === 'home' && renderHome()}
+      {view === 'leaderboard' && renderLeaderboard()}
+      {view === 'game' && renderGame()}
     </div>
   );
 };
