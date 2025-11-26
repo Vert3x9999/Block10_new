@@ -68,8 +68,9 @@ const generateLevels = (
 ): any[] => {
   return Array.from({ length: 15 }, (_, i) => {
     const globalIndex = startGlobalIndex + i;
-    // Rule: Base 15 + 1 per level index + 10 extra for every 15 levels (chapter bonus)
-    const chapterBonus = Math.floor(globalIndex / 15) * 10;
+    // Rule: Base 15 + 1 per level index + 5 extra for every 15 levels (chapter bonus)
+    // Updated logic: +5 coins every chapter (15 levels) instead of +10
+    const chapterBonus = Math.floor(globalIndex / 15) * 5;
     const coinReward = 15 + globalIndex + chapterBonus;
 
     return {

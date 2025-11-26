@@ -161,6 +161,14 @@ const App: React.FC = () => {
   // Undo/Redo Stacks
   const [history, setHistory] = useState<GameState[]>([]);
   
+  // --- Helpers to avoid circular dependencies ---
+  const calculateCrowns = (currentScore: number, target: number) => {
+    if (currentScore >= target * 2) return 3;
+    if (currentScore >= target * 1.5) return 2;
+    if (currentScore >= target) return 1;
+    return 0;
+  };
+
   // --- Persistence Wrappers ---
   const updateGlobalInventory = (type: keyof Inventory, amount: number) => {
     setInventory(prev => {
@@ -311,13 +319,6 @@ const App: React.FC = () => {
     setShowInventory(false);
     
     setView('game');
-  };
-
-  const calculateCrowns = (currentScore: number, target: number) => {
-    if (currentScore >= target * 2) return 3;
-    if (currentScore >= target * 1.5) return 2;
-    if (currentScore >= target) return 1;
-    return 0;
   };
 
   const handleDailyCheckIn = () => {
@@ -1155,29 +1156,29 @@ const App: React.FC = () => {
                   key={souvenir.id} 
                   onClick={() => setSelectedSouvenir(souvenir)}
                   className={`
-                    relative flex flex-col items-center p-6 rounded-2xl border transition-all duration-300 group
+                    relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group aspect-[3/4]
                     ${isUnlocked 
                       ? 'bg-slate-800 border-slate-700 hover:bg-slate-750 hover:border-slate-600 shadow-lg' 
                       : 'bg-slate-900 border-slate-800 opacity-80 cursor-default'}
                   `}
                 >
                     <div className={`
-                      w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300
+                      w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300
                       ${isUnlocked ? 'bg-slate-950 shadow-inner ring-1 ring-white/10' : 'bg-slate-950'}
                     `}>
                       {isUnlocked ? (
-                          <Icon size={40} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+                          <Icon size={32} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
                       ) : (
                           <div className="relative">
-                            <Icon size={40} className="text-slate-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
-                            <HelpCircle size={24} className="absolute inset-0 m-auto text-slate-700" />
+                            <Icon size={32} className="text-slate-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
+                            <HelpCircle size={20} className="absolute inset-0 m-auto text-slate-700" />
                           </div>
                       )}
                     </div>
-                    {isUnlocked && <div className="absolute top-2 right-2 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
+                    {isUnlocked && <div className="absolute top-3 right-3 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
                     
                     {/* Souvenir Name Label */}
-                    <div className={`mt-2 text-xs font-bold text-center px-2 line-clamp-1 ${isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
+                    <div className={`mt-2 text-xs font-bold text-center px-1 line-clamp-2 ${isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
                         {isUnlocked ? souvenir.name : '???'}
                     </div>
                 </button>
