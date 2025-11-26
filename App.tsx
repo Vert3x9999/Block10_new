@@ -548,7 +548,7 @@ const App: React.FC = () => {
       setPlacedAnimationCells(justPlaced);
       setTimeout(() => setPlacedAnimationCells([]), 400);
 
-      // NO PLACEMENT SCORE!
+      // Placement Score REMOVED
       let newScore = score;
 
       const { rowIndices, colIndices } = findClearedLines(newGrid);
@@ -1910,7 +1910,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`${theme} min-h-screen font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-500 ease-in-out bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-[#0B1120] text-slate-800 dark:text-slate-100`}>
+    <div className={`${theme} min-h-screen font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-500 ease-in-out bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100`}>
       {view === 'home' && renderHome()}
       {view === 'leaderboard' && renderLeaderboard()}
       {view === 'world-select' && renderWorldSelect()}
