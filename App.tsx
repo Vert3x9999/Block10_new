@@ -7,7 +7,7 @@ import { playPlaceSound, playClearSound, playGameOverSound, playShuffleSound, pl
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon, X, HelpCircle, Coins, ShoppingBag, HeartPulse, Backpack } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon, X, HelpCircle, Coins, ShoppingBag, HeartPulse, Backpack, Timer } from 'lucide-react';
 
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
@@ -99,6 +99,15 @@ const App: React.FC = () => {
   const [lastCheckIn, setLastCheckIn] = useState<string | null>(() => {
      return localStorage.getItem('blockfit-last-checkin');
   });
+
+  // Online Reward State
+  const [onlineRewardStartTime, setOnlineRewardStartTime] = useState<number>(() => {
+     try {
+       const saved = localStorage.getItem('blockfit-online-reward-start');
+       return saved ? parseInt(saved) : Date.now();
+     } catch { return Date.now(); }
+  });
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
 
   // Calendar State
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
@@ -223,6 +232,42 @@ const App: React.FC = () => {
     });
     setLastCheckIn(today);
     localStorage.setItem('blockfit-last-checkin', today);
+  };
+
+  const saveOnlineRewardTime = (time: number) => {
+      setOnlineRewardStartTime(time);
+      localStorage.setItem('blockfit-online-reward-start', time.toString());
+  };
+
+  // --- Online Reward Logic ---
+  useEffect(() => {
+     // Save start time if missing
+     if (!localStorage.getItem('blockfit-online-reward-start')) {
+         saveOnlineRewardTime(Date.now());
+     }
+     
+     // Timer Tick
+     const timer = setInterval(() => {
+         setCurrentTime(Date.now());
+     }, 1000);
+     
+     return () => clearInterval(timer);
+  }, []);
+
+  const elapsedSeconds = Math.max(0, Math.floor((currentTime - onlineRewardStartTime) / 1000));
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+  // Reward: 1 coin per minute. If >= 60 min, bonus +90 (Total 150 for 60m)
+  const baseReward = elapsedMinutes;
+  const bonusReward = elapsedMinutes >= 60 ? 90 : 0;
+  const totalOnlineReward = baseReward + bonusReward;
+  const progressToHour = Math.min((elapsedMinutes / 60) * 100, 100);
+
+  const handleClaimOnlineReward = () => {
+     if (totalOnlineReward > 0) {
+         updateGlobalInventory('coins', totalOnlineReward);
+         playLevelWinSound();
+         saveOnlineRewardTime(Date.now());
+     }
   };
 
   // --- Helpers ---
@@ -748,7 +793,7 @@ const App: React.FC = () => {
 
   const handleHint = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isGameOver || availableShapes.length === 0 || showResetConfirm || clearingLines || levelResult || showRevivePrompt) return;
+    if (isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || levelResult || showRevivePrompt) return;
     if (getCurrentInventory('hints') <= 0) return;
     const bestMove = findBestMove(grid, availableShapes);
     if (bestMove) {
@@ -765,6 +810,38 @@ const App: React.FC = () => {
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-4 animate-in fade-in duration-500 relative">
+        {/* Online Reward Button (Top Right) */}
+        <button 
+           onClick={handleClaimOnlineReward}
+           disabled={totalOnlineReward <= 0}
+           className="absolute top-4 right-4 bg-slate-900 border border-slate-700 rounded-2xl p-3 flex flex-col items-center gap-1 shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+        >
+           <div className="relative">
+             <Timer size={24} className={totalOnlineReward > 0 ? "text-yellow-500 animate-pulse" : "text-slate-500"} />
+             <svg className="absolute -top-1 -left-1 w-[32px] h-[32px] rotate-[-90deg]" viewBox="0 0 36 36">
+               <path
+                  className="text-slate-700"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+               />
+               <path
+                  className="text-yellow-500 transition-all duration-1000"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeDasharray={`${progressToHour}, 100`}
+               />
+             </svg>
+           </div>
+           <div className="text-[10px] font-bold text-yellow-500 flex items-center gap-0.5">
+             <Coins size={10} /> {totalOnlineReward}
+           </div>
+           {totalOnlineReward > 0 && <div className="text-[8px] text-green-400 font-bold uppercase animate-bounce">Claim!</div>}
+        </button>
+
         <div className="text-center space-y-2 mb-4">
           <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">
             Block10
@@ -1005,7 +1082,7 @@ const App: React.FC = () => {
 
   const renderChapterSelect = () => (
     <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
-      <div className="w-full flex items-center justify-between mb-8">
+      <div className="w-full flex items-center justify-between mb-4">
         <button onClick={() => setView('home')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
           <ArrowLeft size={24} />
         </button>
@@ -1013,6 +1090,13 @@ const App: React.FC = () => {
         <div className="w-10"></div>
       </div>
       
+      {/* World Group Header */}
+      <div className="w-full flex items-center gap-4 mb-4 opacity-50">
+        <div className="h-[1px] bg-slate-600 flex-1"></div>
+        <span className="text-xs font-black tracking-widest text-slate-400 uppercase">World 1: The Beginning</span>
+        <div className="h-[1px] bg-slate-600 flex-1"></div>
+      </div>
+
       <div className="flex flex-col gap-6 w-full">
         {CHAPTERS.map(chapter => {
           const unlockedCount = chapter.levels.filter(l => (levelProgress[l.id] || 0) > 0).length;

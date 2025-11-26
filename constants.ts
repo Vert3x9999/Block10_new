@@ -70,8 +70,6 @@ const generateLevels = (
 ): any[] => {
   return Array.from({ length: 15 }, (_, i) => {
     // Coin Reward: Base start value + 1 per level index
-    // Ch1: 10, 11, 12... 24
-    // Ch2: 25, 26, 27... 39
     const coinReward = startCoinValue + i;
 
     return {
@@ -99,6 +97,13 @@ export const CHAPTERS: ChapterData[] = [
     description: 'Tight spaces, limited moves.',
     souvenirId: 's_golden_compass',
     levels: generateLevels('ch2', 5000, 1000, 30, 0.8, 15, 25) // Coins 25-39
+  },
+  {
+    id: 'ch3',
+    title: 'Chapter 3: Ascension',
+    description: 'Rise above the limits.',
+    souvenirId: 's_crystal_prism',
+    levels: generateLevels('ch3', 10000, 1500, 25, 0.5, 30, 40) // Coins 40-54
   }
 ];
 
@@ -129,9 +134,9 @@ export const SOUVENIRS: Souvenir[] = [
     color: '#eab308' // yellow
   },
   {
-    id: 's_placeholder_3',
+    id: 's_crystal_prism',
     name: 'Crystal Prism',
-    description: 'Coming soon in Chapter 3...',
+    description: 'A prism that refracts light into infinite possibilities. Reward for Chapter 3.',
     icon: 'gem',
     color: '#a855f7' // purple
   },
