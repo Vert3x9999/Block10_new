@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridType, ShapeObj, Position, GameState } from './types';
 import { SHAPE_COLORS, BOARD_SIZE, SHAPES } from './constants';
 import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove } from './utils/gameLogic';
-import { playPlaceSound, playClearSound, playGameOverSound } from './utils/soundEffects';
+import { playPlaceSound, playClearSound, playGameOverSound, playShuffleSound } from './utils/soundEffects';
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Zap, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle } from 'lucide-react';
 
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
@@ -72,6 +72,7 @@ const App: React.FC = () => {
   const [hintLeft, setHintLeft] = useState<number>(3);
   const [undoLeft, setUndoLeft] = useState<number>(3);
   const [redoLeft, setRedoLeft] = useState<number>(3);
+  const [refreshLeft, setRefreshLeft] = useState<number>(3);
   
   // Dragging Refs (Optimization: Don't use State for high-frequency updates)
   const dragInfoRef = useRef<DragInfo | null>(null);
@@ -160,6 +161,7 @@ const App: React.FC = () => {
     setHintLeft(3);
     setUndoLeft(3);
     setRedoLeft(3);
+    setRefreshLeft(3);
 
     setView('game');
   };
@@ -512,6 +514,18 @@ const App: React.FC = () => {
     setSelectedShapeIdx(null);
     setHint(null);
     setRedoLeft(prev => prev - 1);
+  };
+
+  const handleRefresh = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isGameOver || showResetConfirm || clearingLines) return;
+    if (refreshLeft <= 0) return;
+    
+    playShuffleSound();
+    generateNewShapes();
+    setRefreshLeft(prev => prev - 1);
+    setSelectedShapeIdx(null);
+    setHint(null);
   };
 
   const handleHint = (e: React.MouseEvent) => {
@@ -918,6 +932,18 @@ const App: React.FC = () => {
                <RotateCw size={20} />
                <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
                  {redoLeft}
+               </span>
+             </button>
+
+             <button 
+               onClick={handleRefresh} 
+               disabled={!!clearingLines || showResetConfirm || isGameOver || refreshLeft <= 0}
+               className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
+               title="Shuffle Shapes"
+             >
+               <Shuffle size={20} />
+               <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
+                 {refreshLeft}
                </span>
              </button>
            </div>

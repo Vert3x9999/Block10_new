@@ -87,3 +87,13 @@ export const playGameOverSound = () => {
   osc.start();
   osc.stop(ctx.currentTime + 1.0);
 };
+
+export const playShuffleSound = () => {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+
+  // Quick 3-note ascending slide to simulate shuffle
+  playTone(200, 'sine', 0.1, 0, 0.1);
+  playTone(250, 'sine', 0.1, 0.05, 0.1);
+  playTone(300, 'sine', 0.15, 0.1, 0.1);
+};
