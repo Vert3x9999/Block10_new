@@ -59,25 +59,41 @@ export const SHAPES = [...SHAPES_TIER_1, ...SHAPES_TIER_2, ...SHAPES_TIER_3];
 
 // --- Level Data ---
 
+// Helper for Linear Interpolation
+const lerp = (start: number, end: number, t: number) => {
+  return Math.round(start + (end - start) * t);
+};
+
 const generateLevels = (
-  chapterId: string, 
-  baseScore: number, 
-  scoreIncrement: number, 
-  baseMoves: number, 
-  moveDecrement: number,
-  startGlobalIndex: number,
+  chapterId: string,
+  movesRange: [number, number], // [start, end]
+  spmRange: [number, number],   // Score Per Move [start, end]
   startCoinValue: number
 ): any[] => {
   return Array.from({ length: 15 }, (_, i) => {
+    // 0 to 1 progress factor through the chapter
+    const t = i / 14; 
+
+    // Moves decrease or stay steady (floored to avoid decimals)
+    // Enforce a hard floor of 20 moves to prevent it becoming unplayable
+    const rawMoves = lerp(movesRange[0], movesRange[1], t);
+    const maxMoves = Math.max(20, rawMoves);
+
+    // SPM increases as player gets better
+    const spm = lerp(spmRange[0], spmRange[1], t);
+
+    // Target Score = Moves * SPM
+    // This ensures that even with fewer moves, the difficulty scales by efficiency required
+    const targetScore = Math.round(maxMoves * spm);
+
     // Coin Reward: Base start value + 1 per level index
     const coinReward = startCoinValue + i;
 
     return {
       id: `${chapterId}-${i + 1}`,
       label: `${i + 1}`,
-      targetScore: baseScore + (i * scoreIncrement),
-      // Decrease moves slightly as levels get harder, but keep a floor of 20 (Balanced)
-      maxMoves: Math.max(20, baseMoves - Math.floor(i * moveDecrement)),
+      targetScore: targetScore,
+      maxMoves: maxMoves,
       coinReward: coinReward
     };
   });
@@ -87,23 +103,29 @@ export const CHAPTERS: ChapterData[] = [
   {
     id: 'ch1',
     title: 'Chapter 1: Genesis',
-    description: 'The journey begins. Master the basics.',
+    description: 'The journey begins. Relax and enjoy.',
     souvenirId: 's_genesis_cube',
-    levels: generateLevels('ch1', 1000, 300, 40, 0.5, 0, 10) // Coins 10-24
+    // Moves: 50 -> 40 (Very Generous)
+    // SPM: 50 -> 80 (Very Easy. Basic placement is enough to pass)
+    levels: generateLevels('ch1', [50, 40], [50, 80], 10) 
   },
   {
     id: 'ch2',
     title: 'Chapter 2: Challenge',
-    description: 'Tight spaces, limited moves.',
+    description: 'Tight spaces, but plenty of time.',
     souvenirId: 's_golden_compass',
-    levels: generateLevels('ch2', 5000, 1000, 30, 0.8, 15, 25) // Coins 25-39
+    // Moves: 45 -> 35 (Standard+)
+    // SPM: 100 -> 180 (Easy. Occasional line clears required)
+    levels: generateLevels('ch2', [45, 35], [100, 180], 25) 
   },
   {
     id: 'ch3',
     title: 'Chapter 3: Ascension',
-    description: 'Rise above the limits.',
+    description: 'Rise above. A smooth step up.',
     souvenirId: 's_crystal_prism',
-    levels: generateLevels('ch3', 10000, 1500, 25, 0.5, 30, 40) // Coins 40-54
+    // Moves: 40 -> 30 (Normal)
+    // SPM: 200 -> 350 (Moderate. consistent play required, but very achievable)
+    levels: generateLevels('ch3', [40, 30], [200, 350], 40) 
   }
 ];
 
