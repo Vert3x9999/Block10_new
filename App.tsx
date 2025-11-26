@@ -732,277 +732,297 @@ const App: React.FC = () => {
     </div>
   );
 
-  const renderGame = () => (
-    <div 
-      className="flex flex-col items-center justify-center min-h-screen p-4 w-full max-w-lg mx-auto"
-      onClick={handleBackgroundClick}
-    >
-      {/* Header */}
-      <div className="w-full flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setShowResetConfirm(true)}
-            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-slate-700"
-          >
-            <Home size={18} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 leading-none">
-              BlockFit
-            </h1>
-          </div>
-        </div>
-        
-        <div className="flex flex-col items-end relative">
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Current Score</span>
-          <div className="flex items-center gap-2">
-            <span className="text-white font-mono font-bold text-3xl leading-none tracking-tight">{score.toLocaleString()}</span>
-            {comboCount > 1 && (
-              <div className="absolute right-0 top-full mt-1 flex items-center gap-1 text-yellow-400 animate-pulse whitespace-nowrap">
-                  <Zap size={12} className="fill-yellow-400" />
-                  <span className="text-xs font-bold italic tracking-wider">x{comboCount}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Grid Container */}
+  const renderGame = () => {
+    // Determine the highest score to display
+    const historicalBest = leaderboard.length > 0 ? leaderboard[0].score : 0;
+    const currentBestScore = Math.max(score, historicalBest);
+    
+    return (
       <div 
-        ref={gridRef}
-        className="relative bg-slate-900 p-3 rounded-xl shadow-2xl shadow-black ring-1 ring-slate-800 touch-none mb-6"
-        onClick={(e) => e.stopPropagation()}
+        className="flex flex-col items-center justify-center min-h-screen p-4 w-full max-w-lg mx-auto"
+        onClick={handleBackgroundClick}
       >
-        <div 
-          className="grid gap-1"
-          style={{ 
-            gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
-            width: 'min(85vw, 380px)',
-            height: 'min(85vw, 380px)',
-          }}
-          onMouseLeave={() => !isDragging && setHoverPos(null)}
-        >
-          {grid.map((row, r) => (
-            row.map((cellColor, c) => {
-              const isClearing = clearingLines && (clearingLines.rows.includes(r) || clearingLines.cols.includes(c));
-              const isPlacement = placedAnimationCells.some(p => p.r === r && p.c === c);
-              
-              const ghost = ghostCells.find(g => g.r === r && g.c === c);
-              const hintCell = hintCells.find(h => h.r === r && h.c === c);
-              
-              let displayColor = cellColor;
-              let isGhost = false;
-              let isHint = false;
-              let isValid = true;
-
-              if (ghost) {
-                if (!cellColor) {
-                  displayColor = ghost.color;
-                  isGhost = true;
-                  isValid = ghost.valid;
-                }
-              } else if (hintCell && !cellColor && selectedShapeIdx === null && !isDragging) {
-                displayColor = hintCell.color;
-                isHint = true;
-              }
-
-              return (
-                <div 
-                  key={`${r}-${c}`} 
-                  className={`
-                    relative w-full h-full
-                    ${isClearing ? 'animate-clear z-10' : ''}
-                    transition-all duration-300
-                  `}
+        {/* Header */}
+        <div className="w-full flex justify-between items-start mb-6">
+          <div className="flex flex-col gap-1">
+             <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowResetConfirm(true)}
+                  className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-slate-700"
                 >
-                   <GridCell 
-                      color={displayColor}
-                      isGhost={isGhost}
-                      isHint={isHint}
-                      isPlacement={isPlacement}
-                      isValid={isValid}
-                      onClick={() => handleClickCell(r, c)}
-                      onMouseEnter={() => handleMouseEnterCell(r, c)}
-                   />
-                </div>
-              );
-            })
-          ))}
-        </div>
-
-        {/* Reset Confirmation Overlay */}
-        {showResetConfirm && (
-          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-30 p-6 text-center animate-in fade-in duration-200">
-            <h2 className="text-xl font-bold text-white mb-2">Quit Game?</h2>
-            <p className="text-slate-400 mb-6 text-sm">Progress will be lost.</p>
-            <div className="flex flex-col gap-3 w-full">
-              <button 
-                onClick={confirmReset}
-                className="w-full py-3 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg"
-              >
-                Restart
-              </button>
-              <button 
-                onClick={exitToHome}
-                className="w-full py-3 rounded-lg font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
-              >
-                Exit to Home
-              </button>
-              <button 
-                onClick={() => setShowResetConfirm(false)}
-                className="w-full py-3 rounded-lg font-bold text-slate-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+                  <Home size={18} />
+                </button>
+                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 leading-none">
+                  BlockFit
+                </h1>
+             </div>
           </div>
-        )}
-
-        {/* Game Over Overlay */}
-        {isGameOver && (
-          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300">
-            {isNewHighScore ? (
-              <div className="flex flex-col items-center animate-bounce mb-2">
-                <Crown size={48} className="text-yellow-400 fill-yellow-400/20" />
-                <span className="text-yellow-400 font-black tracking-widest text-lg drop-shadow-glow">NEW BEST!</span>
-              </div>
-            ) : (
-              <AlertCircle size={48} className="text-red-500 mb-4" />
-            )}
-            
-            <h2 className="text-3xl font-black text-white mb-2">GAME OVER</h2>
-            <div className={`
-              px-6 py-3 rounded-xl border mb-8 flex flex-col items-center
-              ${isNewHighScore ? 'bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-slate-800/50 border-slate-700'}
-            `}>
-              <span className="text-slate-400 text-xs uppercase font-bold tracking-wider">Final Score</span>
-              <span className={`text-3xl font-mono ${isNewHighScore ? 'text-yellow-400' : 'text-white'}`}>{score.toLocaleString()}</span>
-            </div>
-            
-            <div className="flex flex-col gap-3 w-3/4">
-              <button 
-                onClick={handleUndo}
-                disabled={history.length === 0 || undoLeft <= 0}
-                className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
-              >
-                <RotateCcw size={18} />
-                Undo Last Move {undoLeft > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{undoLeft}</span>}
-              </button>
-              <button 
-                onClick={startNewGame}
-                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/25 active:scale-95"
-              >
-                <RefreshCw size={18} />
-                Try Again
-              </button>
-              <button 
-                onClick={exitToHome}
-                className="text-slate-500 hover:text-white text-sm font-bold py-2 transition-colors"
-              >
-                Back to Menu
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Tools & Shape Tray */}
-      <div className="w-full max-w-md flex flex-col gap-4">
-         <div className="flex justify-between items-center px-4">
-           
-           <div className="flex gap-4">
-             <button 
-               onClick={handleUndo} 
-               disabled={history.length === 0 || !!clearingLines || showResetConfirm || undoLeft <= 0}
-               className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
-               title="Undo"
-             >
-               <RotateCcw size={20} />
-               <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
-                 {undoLeft}
+          
+          <div className="flex gap-4">
+             {/* High Score Block */}
+             <div className="flex flex-col items-end">
+               <div className="flex items-center gap-1 text-yellow-500 mb-0.5">
+                  <Crown size={12} fill="currentColor" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Best</span>
+               </div>
+               <span className="text-xl font-mono font-bold leading-none bg-clip-text text-transparent bg-gradient-to-b from-yellow-300 to-amber-500 drop-shadow-[0_2px_10px_rgba(234,179,8,0.3)]">
+                 {currentBestScore.toLocaleString()}
                </span>
-             </button>
+             </div>
              
-             <button 
-               onClick={handleRedo} 
-               disabled={redoStack.length === 0 || !!clearingLines || showResetConfirm || isGameOver || redoLeft <= 0}
-               className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
-               title="Redo"
-             >
-               <RotateCw size={20} />
-               <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
-                 {redoLeft}
-               </span>
-             </button>
-
-             <button 
-               onClick={handleRefresh} 
-               disabled={!!clearingLines || showResetConfirm || isGameOver || refreshLeft <= 0}
-               className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
-               title="Shuffle Shapes"
-             >
-               <Shuffle size={20} />
-               <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
-                 {refreshLeft}
-               </span>
-             </button>
-           </div>
-
-           <button 
-              onClick={handleHint}
-              disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || hintLeft <= 0}
-              className="relative flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95"
-            >
-              <Lightbulb size={18} className={hint ? "fill-yellow-500" : ""} />
-              <span className="font-bold text-sm">HINT</span>
-              <span className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-                 {hintLeft}
-               </span>
-            </button>
-        </div>
-        
-        <div className="bg-slate-900/50 rounded-2xl border border-slate-800/50 pb-2">
-          <ShapeTray 
-            shapes={availableShapes} 
-            selectedIndex={selectedShapeIdx} 
-            draggingIndex={isDragging && dragInfoRef.current ? dragInfoRef.current.shapeIdx : null}
-            onSelectShape={handleSelectShape} 
-            onDragStart={handleDragStart}
-          />
-        </div>
-
-        {hint !== null && !isDragging && (
-          <div className="text-center text-xs text-yellow-500 animate-pulse font-bold">
-             Check the board!
+             {/* Current Score Block */}
+             <div className="flex flex-col items-end relative">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Score</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-mono font-bold text-3xl leading-none tracking-tight">{score.toLocaleString()}</span>
+                  {comboCount > 1 && (
+                    <div className="absolute right-0 top-full mt-1 flex items-center gap-1 text-yellow-400 animate-pulse whitespace-nowrap">
+                        <Zap size={12} className="fill-yellow-400" />
+                        <span className="text-xs font-bold italic tracking-wider">x{comboCount}</span>
+                    </div>
+                  )}
+                </div>
+             </div>
           </div>
-        )}
+        </div>
+  
+        {/* Grid Container */}
+        <div 
+          ref={gridRef}
+          className="relative bg-slate-900 p-3 rounded-xl shadow-2xl shadow-black ring-1 ring-slate-800 touch-none mb-6"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div 
+            className="grid gap-1"
+            style={{ 
+              gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
+              width: 'min(85vw, 380px)',
+              height: 'min(85vw, 380px)',
+            }}
+            onMouseLeave={() => !isDragging && setHoverPos(null)}
+          >
+            {grid.map((row, r) => (
+              row.map((cellColor, c) => {
+                const isClearing = clearingLines && (clearingLines.rows.includes(r) || clearingLines.cols.includes(c));
+                const isPlacement = placedAnimationCells.some(p => p.r === r && p.c === c);
+                
+                const ghost = ghostCells.find(g => g.r === r && g.c === c);
+                const hintCell = hintCells.find(h => h.r === r && h.c === c);
+                
+                let displayColor = cellColor;
+                let isGhost = false;
+                let isHint = false;
+                let isValid = true;
+  
+                if (ghost) {
+                  if (!cellColor) {
+                    displayColor = ghost.color;
+                    isGhost = true;
+                    isValid = ghost.valid;
+                  }
+                } else if (hintCell && !cellColor && selectedShapeIdx === null && !isDragging) {
+                  displayColor = hintCell.color;
+                  isHint = true;
+                }
+  
+                return (
+                  <div 
+                    key={`${r}-${c}`} 
+                    className={`
+                      relative w-full h-full
+                      ${isClearing ? 'animate-clear z-10' : ''}
+                      transition-all duration-300
+                    `}
+                  >
+                     <GridCell 
+                        color={displayColor}
+                        isGhost={isGhost}
+                        isHint={isHint}
+                        isPlacement={isPlacement}
+                        isValid={isValid}
+                        onClick={() => handleClickCell(r, c)}
+                        onMouseEnter={() => handleMouseEnterCell(r, c)}
+                     />
+                  </div>
+                );
+              })
+            ))}
+          </div>
+  
+          {/* Reset Confirmation Overlay */}
+          {showResetConfirm && (
+            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-30 p-6 text-center animate-in fade-in duration-200">
+              <h2 className="text-xl font-bold text-white mb-2">Quit Game?</h2>
+              <p className="text-slate-400 mb-6 text-sm">Progress will be lost.</p>
+              <div className="flex flex-col gap-3 w-full">
+                <button 
+                  onClick={confirmReset}
+                  className="w-full py-3 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg"
+                >
+                  Restart
+                </button>
+                <button 
+                  onClick={exitToHome}
+                  className="w-full py-3 rounded-lg font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                >
+                  Exit to Home
+                </button>
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="w-full py-3 rounded-lg font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+  
+          {/* Game Over Overlay */}
+          {isGameOver && (
+            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300">
+              {isNewHighScore ? (
+                <div className="flex flex-col items-center animate-bounce mb-2">
+                  <Crown size={48} className="text-yellow-400 fill-yellow-400/20" />
+                  <span className="text-yellow-400 font-black tracking-widest text-lg drop-shadow-glow">NEW BEST!</span>
+                </div>
+              ) : (
+                <AlertCircle size={48} className="text-red-500 mb-4" />
+              )}
+              
+              <h2 className="text-3xl font-black text-white mb-2">GAME OVER</h2>
+              <div className={`
+                px-6 py-3 rounded-xl border mb-8 flex flex-col items-center
+                ${isNewHighScore ? 'bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-slate-800/50 border-slate-700'}
+              `}>
+                <span className="text-slate-400 text-xs uppercase font-bold tracking-wider">Final Score</span>
+                <span className={`text-3xl font-mono ${isNewHighScore ? 'text-yellow-400' : 'text-white'}`}>{score.toLocaleString()}</span>
+              </div>
+              
+              <div className="flex flex-col gap-3 w-3/4">
+                <button 
+                  onClick={handleUndo}
+                  disabled={history.length === 0 || undoLeft <= 0}
+                  className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+                >
+                  <RotateCcw size={18} />
+                  Undo Last Move {undoLeft > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{undoLeft}</span>}
+                </button>
+                <button 
+                  onClick={startNewGame}
+                  className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/25 active:scale-95"
+                >
+                  <RefreshCw size={18} />
+                  Try Again
+                </button>
+                <button 
+                  onClick={exitToHome}
+                  className="text-slate-500 hover:text-white text-sm font-bold py-2 transition-colors"
+                >
+                  Back to Menu
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+  
+        {/* Tools & Shape Tray */}
+        <div className="w-full max-w-md flex flex-col gap-4">
+           <div className="flex justify-between items-center px-4">
+             
+             <div className="flex gap-4">
+               <button 
+                 onClick={handleUndo} 
+                 disabled={history.length === 0 || !!clearingLines || showResetConfirm || undoLeft <= 0}
+                 className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
+                 title="Undo"
+               >
+                 <RotateCcw size={20} />
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
+                   {undoLeft}
+                 </span>
+               </button>
+               
+               <button 
+                 onClick={handleRedo} 
+                 disabled={redoStack.length === 0 || !!clearingLines || showResetConfirm || isGameOver || redoLeft <= 0}
+                 className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
+                 title="Redo"
+               >
+                 <RotateCw size={20} />
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
+                   {redoLeft}
+                 </span>
+               </button>
+  
+               <button 
+                 onClick={handleRefresh} 
+                 disabled={!!clearingLines || showResetConfirm || isGameOver || refreshLeft <= 0}
+                 className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
+                 title="Shuffle Shapes"
+               >
+                 <Shuffle size={20} />
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">
+                   {refreshLeft}
+                 </span>
+               </button>
+             </div>
+  
+             <button 
+                onClick={handleHint}
+                disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || hintLeft <= 0}
+                className="relative flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95"
+              >
+                <Lightbulb size={18} className={hint ? "fill-yellow-500" : ""} />
+                <span className="font-bold text-sm">HINT</span>
+                <span className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                   {hintLeft}
+                 </span>
+              </button>
+          </div>
+          
+          <div className="bg-slate-900/50 rounded-2xl border border-slate-800/50 pb-2">
+            <ShapeTray 
+              shapes={availableShapes} 
+              selectedIndex={selectedShapeIdx} 
+              draggingIndex={isDragging && dragInfoRef.current ? dragInfoRef.current.shapeIdx : null}
+              onSelectShape={handleSelectShape} 
+              onDragStart={handleDragStart}
+            />
+          </div>
+  
+          {hint !== null && !isDragging && (
+            <div className="text-center text-xs text-yellow-500 animate-pulse font-bold">
+               Check the board!
+            </div>
+          )}
+        </div>
+  
+        {/* Floating Shape when dragging - Optimized with ref */}
+        <div 
+          ref={floatingShapeRef}
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            transform: 'translate(0,0)',
+            pointerEvents: 'none',
+            zIndex: 50,
+            opacity: 0, // Hidden initially until positioned
+            transformOrigin: '50% 50%'
+          }}
+        >
+          {isDragging && dragInfoRef.current && (
+             <ShapeRenderer 
+               matrix={availableShapes[dragInfoRef.current.shapeIdx].matrix} 
+               color={availableShapes[dragInfoRef.current.shapeIdx].color} 
+               cellSize={dragInfoRef.current.gridCellSize}
+               className="drop-shadow-2xl opacity-90"
+             />
+          )}
+        </div>
       </div>
-
-      {/* Floating Shape when dragging - Optimized with ref */}
-      <div 
-        ref={floatingShapeRef}
-        style={{
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          transform: 'translate(0,0)',
-          pointerEvents: 'none',
-          zIndex: 50,
-          opacity: 0, // Hidden initially until positioned
-          transformOrigin: '50% 50%'
-        }}
-      >
-        {isDragging && dragInfoRef.current && (
-           <ShapeRenderer 
-             matrix={availableShapes[dragInfoRef.current.shapeIdx].matrix} 
-             color={availableShapes[dragInfoRef.current.shapeIdx].color} 
-             cellSize={dragInfoRef.current.gridCellSize}
-             className="drop-shadow-2xl opacity-90"
-           />
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="bg-slate-950 min-h-screen text-slate-200 font-sans selection:bg-blue-500/30 touch-none overflow-hidden">
