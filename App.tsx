@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress, Inventory, Souvenir } from './types';
 import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, WORLDS, SOUVENIRS, SHOP_PRICES } from './constants';
@@ -550,7 +549,6 @@ const App: React.FC = () => {
       setTimeout(() => setPlacedAnimationCells([]), 400);
 
       // NO PLACEMENT SCORE!
-      // Previously: let newScore = score + (blocksCount * 100);
       let newScore = score;
 
       const { rowIndices, colIndices } = findClearedLines(newGrid);
@@ -851,14 +849,14 @@ const App: React.FC = () => {
         <div className="absolute top-4 left-4 flex gap-2">
            <button 
              onClick={() => setLang(l => l === 'en' ? 'zh' : 'en')}
-             className="bg-slate-800/80 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-300 p-2 rounded-xl transition-colors border border-slate-700"
+             className="bg-white hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 p-2 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm"
              title="Switch Language"
            >
              <Languages size={20} />
            </button>
            <button 
              onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-             className="bg-slate-800/80 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-yellow-400 p-2 rounded-xl transition-colors border border-slate-700"
+             className="bg-white hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-yellow-500 dark:text-yellow-400 p-2 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm"
              title="Toggle Theme"
            >
              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -869,13 +867,13 @@ const App: React.FC = () => {
         <button 
            onClick={handleClaimOnlineReward}
            disabled={totalOnlineReward <= 0}
-           className="absolute top-4 right-4 bg-gradient-to-br from-indigo-700 to-violet-900 border border-yellow-400/50 rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:grayscale"
+           className="absolute top-4 right-4 bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-800 dark:to-purple-900 border border-yellow-400/50 rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:grayscale"
         >
            <div className="relative">
-             <Timer size={24} className={totalOnlineReward > 0 ? "text-yellow-300 animate-pulse drop-shadow-sm" : "text-slate-400"} />
+             <Timer size={24} className={totalOnlineReward > 0 ? "text-yellow-300 animate-pulse drop-shadow-sm" : "text-white/60"} />
              <svg className="absolute -top-1 -left-1 w-[32px] h-[32px] rotate-[-90deg]" viewBox="0 0 36 36">
                <path
-                  className="text-white/10"
+                  className="text-white/20"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
                   stroke="currentColor"
@@ -897,7 +895,7 @@ const App: React.FC = () => {
         </button>
 
         <div className="text-center space-y-2 mb-4">
-          <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 drop-shadow-lg dark:drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+          <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-500 dark:via-purple-500 dark:to-pink-500 drop-shadow-lg dark:drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">
             Block10
           </h1>
           <p className="dark:text-slate-400 text-slate-500 text-sm tracking-[0.3em] uppercase font-semibold">
@@ -908,7 +906,7 @@ const App: React.FC = () => {
         {/* Inventory Dashboard Button */}
         <button 
           onClick={() => setShowInventory(true)}
-          className="w-full max-w-xs bg-slate-100 dark:bg-slate-900/50 hover:bg-slate-200 dark:hover:bg-slate-800/80 transition-colors p-3 rounded-xl border border-slate-300 dark:border-slate-800 backdrop-blur-sm grid grid-cols-3 gap-2 text-xs font-mono mb-2 group active:scale-95 shadow-sm"
+          className="w-full max-w-xs bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors p-3 rounded-xl border border-slate-200 dark:border-slate-800 backdrop-blur-sm grid grid-cols-3 gap-2 text-xs font-mono mb-2 group active:scale-95 shadow-sm dark:shadow-none"
         >
             <div className="flex flex-col items-center gap-1 text-yellow-600 dark:text-yellow-500 group-hover:scale-110 transition-transform">
                 <Coins size={16} />
@@ -918,7 +916,7 @@ const App: React.FC = () => {
                 <HeartPulse size={16} />
                 <span>{inventory.revives}</span>
             </div>
-            <div className="flex flex-col items-center gap-1 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform">
+            <div className="flex flex-col items-center gap-1 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                 <div className="flex gap-1">
                     <Lightbulb size={12} /> <RotateCcw size={12} />
                 </div>
@@ -948,21 +946,21 @@ const App: React.FC = () => {
           <div className="grid grid-cols-3 gap-3">
              <button 
               onClick={() => setShowShop(true)}
-              className="group flex flex-col items-center justify-center gap-1 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl font-bold text-xs border-b-4 border-yellow-800 active:border-b-0 active:translate-y-1 transition-all"
+              className="group flex flex-col items-center justify-center gap-1 py-3 bg-yellow-500 hover:bg-yellow-400 dark:bg-yellow-600 dark:hover:bg-yellow-500 text-white rounded-xl font-bold text-xs border-b-4 border-yellow-700 dark:border-yellow-800 active:border-b-0 active:translate-y-1 transition-all shadow-md"
             >
               <ShoppingBag size={20} />
               {t('shop')}
             </button>
             <button 
               onClick={() => setView('leaderboard')}
-              className="group flex flex-col items-center justify-center gap-1 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs border border-slate-300 dark:border-slate-700 transition-all hover:scale-105 active:scale-95"
+              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all hover:scale-105 active:scale-95 shadow-sm"
             >
-              <History size={20} className="text-yellow-600 dark:text-yellow-500" />
+              <History size={20} className="text-yellow-500 dark:text-yellow-500" />
               {t('records')}
             </button>
             <button 
               onClick={() => setView('souvenirs')}
-              className="group flex flex-col items-center justify-center gap-1 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs border border-slate-300 dark:border-slate-700 transition-all hover:scale-105 active:scale-95"
+              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all hover:scale-105 active:scale-95 shadow-sm"
             >
               <Package size={20} className="text-pink-500" />
               {t('souvenirs')}
@@ -972,10 +970,10 @@ const App: React.FC = () => {
           <button 
             onClick={() => setShowCalendar(true)}
             className={`
-              relative group flex items-center justify-center gap-3 w-full py-3 rounded-xl font-bold text-sm border transition-all hover:scale-105 active:scale-95
+              relative group flex items-center justify-center gap-3 w-full py-3 rounded-xl font-bold text-sm border transition-all hover:scale-105 active:scale-95 shadow-sm
               ${!isCheckedIn 
-                ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-green-500 shadow-lg shadow-green-500/20' 
-                : 'bg-slate-200 dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-800 opacity-80'}
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white border-green-500 shadow-green-500/20' 
+                : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800 opacity-80'}
             `}
           >
             <Calendar size={18} />
@@ -1001,33 +999,33 @@ const App: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-700">
                        <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-500 font-bold"><Coins size={20} /> {t('coins')}</div>
                        <span className="text-xl font-mono text-slate-800 dark:text-slate-200">{inventory.coins}</span>
                     </div>
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-700">
                        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-500 font-bold"><HeartPulse size={20} /> {t('revive')}</div>
                        <span className="text-xl font-mono text-slate-800 dark:text-slate-200">{inventory.revives}</span>
                     </div>
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-700">
                        <div className="flex items-center gap-2 text-yellow-500 font-bold"><Lightbulb size={20} /> {t('hint')}</div>
                        <span className="text-xl font-mono text-slate-800 dark:text-slate-200">{inventory.hints}</span>
                     </div>
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-700">
                        <div className="flex items-center gap-2 text-blue-500 font-bold"><RotateCcw size={20} /> {t('undo')}</div>
                        <span className="text-xl font-mono text-slate-800 dark:text-slate-200">{inventory.undos}</span>
                     </div>
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-700">
                        <div className="flex items-center gap-2 text-green-600 dark:text-green-500 font-bold"><Shuffle size={20} /> {t('shuffle')}</div>
                        <span className="text-xl font-mono text-slate-800 dark:text-slate-200">{inventory.refreshes}</span>
                     </div>
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-700">
                        <div className="flex items-center gap-2 text-purple-600 dark:text-purple-500 font-bold"><RefreshCw size={20} /> {t('rotate')}</div>
                        <span className="text-xl font-mono text-slate-800 dark:text-slate-200">{inventory.rotators}</span>
                     </div>
                 </div>
 
-                <button onClick={() => setShowInventory(false)} className="mt-2 w-full py-3 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-bold">{t('close')}</button>
+                <button onClick={() => setShowInventory(false)} className="mt-2 w-full py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold transition-colors">{t('close')}</button>
              </div>
           </div>
         )}
@@ -1047,7 +1045,7 @@ const App: React.FC = () => {
                         <button 
                             key={item}
                             onClick={() => handleBuyItem(item as keyof typeof SHOP_PRICES)}
-                            className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 p-3 rounded-xl flex flex-col items-center gap-2 border border-slate-200 dark:border-slate-700 active:scale-95 transition-all"
+                            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 p-3 rounded-xl flex flex-col items-center gap-2 border border-slate-200 dark:border-slate-700 active:scale-95 transition-all"
                         >
                             <div className="capitalize text-sm font-bold text-slate-800 dark:text-white">{t(item === 'refreshes' ? 'shuffle' : item === 'rotators' ? 'rotate' : item.slice(0, -1))}</div>
                             <div className="text-xs text-yellow-600 dark:text-yellow-500 flex items-center gap-1">
@@ -1056,7 +1054,7 @@ const App: React.FC = () => {
                         </button>
                     ))}
                  </div>
-                 <button onClick={() => setShowShop(false)} className="mt-2 w-full py-3 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-bold">{t('close')}</button>
+                 <button onClick={() => setShowShop(false)} className="mt-2 w-full py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold transition-colors">{t('close')}</button>
               </div>
            </div>
         )}
@@ -1082,10 +1080,10 @@ const App: React.FC = () => {
                     return (
                       <div key={i} className={`
                         aspect-square rounded-lg flex flex-col items-center justify-center text-xs border relative
-                        ${isToday ? 'border-green-500 bg-green-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50'}
+                        ${isToday ? 'border-green-500 bg-green-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'}
                         ${isChecked ? 'opacity-50' : ''}
                       `}>
-                         <span className={isToday ? "text-green-600 dark:text-green-400 font-bold" : "text-slate-400"}>{day}</span>
+                         <span className={isToday ? "text-green-600 dark:text-green-400 font-bold" : "text-slate-400 dark:text-slate-600"}>{day}</span>
                          {isBigReward && <Gift size={12} className="text-yellow-500 mt-1" />}
                          {!isBigReward && !isChecked && <Coins size={10} className="text-slate-400 dark:text-slate-600 mt-1" />}
                          {isChecked && <CheckCircle2 size={12} className="text-green-500 mt-1" />}
@@ -1137,7 +1135,7 @@ const App: React.FC = () => {
   const renderWorldSelect = () => (
     <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 ${theme}`}>
       <div className="w-full flex items-center justify-between mb-8">
-        <button onClick={() => setView('home')} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:text-white">
+        <button onClick={() => setView('home')} className="p-2 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('selectWorld')}</h2>
@@ -1167,7 +1165,7 @@ const App: React.FC = () => {
                 setCurrentWorldId(world.id);
                 setView('chapter-select');
               }}
-              className="group relative flex flex-col gap-4 p-6 bg-gradient-to-br from-indigo-100 to-slate-100 dark:from-indigo-900 dark:to-slate-900 border border-indigo-200 dark:border-indigo-500/30 hover:border-indigo-400 rounded-3xl text-left transition-all hover:scale-105 active:scale-95 shadow-xl dark:shadow-2xl overflow-hidden"
+              className="group relative flex flex-col gap-4 p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900 dark:to-slate-900 border border-indigo-100 dark:border-indigo-500/30 hover:border-indigo-400 rounded-3xl text-left transition-all hover:scale-105 active:scale-95 shadow-md dark:shadow-2xl overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                  <Globe2 size={120} className="text-indigo-900 dark:text-white" />
@@ -1202,7 +1200,7 @@ const App: React.FC = () => {
     return (
       <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 ${theme}`}>
         <div className="w-full flex items-center justify-between mb-4">
-          <button onClick={() => setView('world-select')} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:text-white">
+          <button onClick={() => setView('world-select')} className="p-2 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm">
             <ArrowLeft size={24} />
           </button>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{world ? t(world.id) : t('selectChapter')}</h2>
@@ -1222,7 +1220,7 @@ const App: React.FC = () => {
                   setCurrentChapterId(chapter.id);
                   setView('level-select');
                 }}
-                className="relative flex flex-col gap-2 p-6 bg-white/80 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-lg dark:shadow-xl overflow-hidden"
+                className="relative flex flex-col gap-2 p-6 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-md dark:shadow-xl overflow-hidden"
               >
                 <div className="flex justify-between items-start z-10">
                   <div>
@@ -1254,7 +1252,7 @@ const App: React.FC = () => {
     return (
       <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 ${theme}`}>
         <div className="w-full flex items-center justify-between mb-8">
-          <button onClick={() => setView('chapter-select')} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:text-white">
+          <button onClick={() => setView('chapter-select')} className="p-2 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm">
             <ArrowLeft size={24} />
           </button>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate">{t(chapter.id)}</h2>
@@ -1276,7 +1274,7 @@ const App: React.FC = () => {
                 className={`
                   relative aspect-square flex flex-col items-center justify-center rounded-xl border-2 transition-all overflow-hidden
                   ${isUnlocked 
-                    ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95' 
+                    ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 shadow-sm' 
                     : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed'}
                 `}
               >
@@ -1328,7 +1326,7 @@ const App: React.FC = () => {
         {/* Header Section (Fixed) */}
         <div className="w-full flex-none">
             <div className="w-full flex items-center justify-between mb-6">
-                <button onClick={() => setView('home')} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:text-white">
+                <button onClick={() => setView('home')} className="p-2 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm">
                     <ArrowLeft size={24} />
                 </button>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('collection')}</h2>
@@ -1361,13 +1359,13 @@ const App: React.FC = () => {
                             className={`
                                 relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group aspect-[4/5]
                                 ${isUnlocked 
-                                    ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 shadow-lg' 
+                                    ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 shadow-md' 
                                     : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-80 cursor-default'}
                             `}
                         >
                             <div className={`
                                 w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300
-                                ${isUnlocked ? 'bg-slate-100 dark:bg-slate-950 shadow-inner ring-1 ring-black/5 dark:ring-white/10' : 'bg-slate-200 dark:bg-slate-950'}
+                                ${isUnlocked ? 'bg-slate-50 dark:bg-slate-950 shadow-inner ring-1 ring-black/5 dark:ring-white/10' : 'bg-slate-200 dark:bg-slate-950'}
                             `}>
                                 {isUnlocked ? (
                                     <Icon size={32} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
@@ -1411,7 +1409,7 @@ const App: React.FC = () => {
                     return (
                        <>
                           <div className={`
-                             w-32 h-32 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-950 shadow-2xl ring-4 ring-slate-200 dark:ring-slate-800
+                             w-32 h-32 rounded-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 shadow-2xl ring-4 ring-slate-100 dark:ring-slate-800
                              ${!isUnlocked ? 'grayscale opacity-50' : ''}
                           `}>
                              <Icon 
@@ -1501,7 +1499,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 justify-self-start">
              <button 
                 onClick={() => setShowResetConfirm(true)}
-                className="p-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors border border-slate-300 dark:border-slate-700 shadow-lg"
+                className="p-3 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors border border-slate-200 dark:border-slate-700 shadow-md"
               >
                 <Home size={20} />
               </button>
@@ -1512,7 +1510,7 @@ const App: React.FC = () => {
                {isLevelMode ? `${t('level')} ${currentLevel.label}` : t('score')}
              </span>
              <div className="relative">
-                <span className="text-5xl font-mono font-black text-slate-900 dark:text-white tracking-tighter drop-shadow-2xl leading-none">
+                <span className="text-5xl font-mono font-black text-slate-900 dark:text-white tracking-tighter drop-shadow-md leading-none">
                   {score.toLocaleString()}
                 </span>
                 {comboCount > 1 && (
@@ -1531,7 +1529,7 @@ const App: React.FC = () => {
           </div>
           
           {/* Right Side Info */}
-          <div className="flex flex-col items-end justify-self-end bg-white/50 dark:bg-slate-900/50 p-2 pr-3 pl-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm min-w-[80px]">
+          <div className="flex flex-col items-end justify-self-end bg-white dark:bg-slate-900/50 p-2 pr-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-800/50 backdrop-blur-sm min-w-[80px] shadow-sm">
              {isLevelMode ? (
                <div className="flex flex-col items-end">
                  <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 mb-0.5">
@@ -1548,7 +1546,7 @@ const App: React.FC = () => {
                     <Crown size={14} fill="currentColor" className="drop-shadow-glow" />
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{t('best')}</span>
                 </div>
-                <span className="text-xl font-mono font-bold leading-none bg-clip-text text-transparent bg-gradient-to-b from-yellow-400 to-amber-600 dark:from-yellow-300 dark:to-amber-500 drop-shadow-sm">
+                <span className="text-xl font-mono font-bold leading-none bg-clip-text text-transparent bg-gradient-to-b from-yellow-500 to-amber-700 dark:from-yellow-300 dark:to-amber-500 drop-shadow-sm">
                   {currentBestScore.toLocaleString()}
                 </span>
                </>
@@ -1642,7 +1640,7 @@ const App: React.FC = () => {
   
           {/* Level Complete Overlay */}
           {levelResult && levelResult.success && (
-            <div className="absolute inset-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
+            <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
                <div className="flex gap-2 mb-4 animate-pulse">
                   {[1, 2, 3].map(i => (
                     <Crown 
@@ -1696,7 +1694,7 @@ const App: React.FC = () => {
 
           {/* Revive Overlay */}
           {showRevivePrompt && (
-              <div className="absolute inset-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-30 animate-in zoom-in-95 duration-300 p-6 text-center">
+              <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-30 animate-in zoom-in-95 duration-300 p-6 text-center">
                   <HeartPulse size={48} className="text-pink-500 animate-pulse mb-4" />
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t('outOfMoves')}!</h2>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">{t('revivePrompt')}</p>
@@ -1721,7 +1719,7 @@ const App: React.FC = () => {
 
           {/* Game Over / Fail Overlay */}
           {isGameOver && !levelResult && !showRevivePrompt && (
-            <div className="absolute inset-0 bg-white/90 dark:bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
+            <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
               {isNewHighScore ? (
                 <div className="flex flex-col items-center animate-bounce mb-2">
                   <Crown size={48} className="text-yellow-500 dark:text-yellow-400 fill-yellow-500/20 dark:fill-yellow-400/20" />
@@ -1777,7 +1775,7 @@ const App: React.FC = () => {
 
           {/* Reset Confirmation Overlay */}
           {showResetConfirm && (
-             <div className="absolute inset-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-30 p-6 text-center animate-in fade-in duration-200">
+             <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-30 p-6 text-center animate-in fade-in duration-200">
                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('quitGame')}?</h2>
                <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">{t('progressLost')}</p>
                <div className="flex flex-col gap-3 w-full">
@@ -1812,7 +1810,7 @@ const App: React.FC = () => {
                <button 
                  onClick={handleUndo} 
                  disabled={history.length === 0 || !!clearingLines || showResetConfirm || getCurrentInventory('undos') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-slate-200 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-200 dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-300 dark:border-slate-700/50"
+                 className="relative group p-3 bg-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50 shadow-sm"
                >
                  <RotateCcw size={20} />
                  <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-100 dark:border-slate-950">{getCurrentInventory('undos')}</span>
@@ -1822,7 +1820,7 @@ const App: React.FC = () => {
                <button 
                  onClick={handleRotate} 
                  disabled={selectedShapeIdx === null || !!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('rotators') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-slate-200 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-200 dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-300 dark:border-slate-700/50"
+                 className="relative group p-3 bg-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50 shadow-sm"
                >
                  <RefreshCw size={20} className={selectedShapeIdx !== null ? "animate-spin-once" : ""} />
                  <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-100 dark:border-slate-950">{getCurrentInventory('rotators')}</span>
@@ -1832,7 +1830,7 @@ const App: React.FC = () => {
                <button 
                  onClick={handleRefresh} 
                  disabled={!!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('refreshes') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-slate-200 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-200 dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-300 dark:border-slate-700/50"
+                 className="relative group p-3 bg-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50 shadow-sm"
                >
                  <Shuffle size={20} />
                  <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-100 dark:border-slate-950">{getCurrentInventory('refreshes')}</span>
@@ -1843,7 +1841,7 @@ const App: React.FC = () => {
              <button 
                 onClick={handleHint}
                 disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || !!levelResult || showRevivePrompt || getCurrentInventory('hints') <= 0}
-                className="relative flex items-center gap-2 px-4 py-2 bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95"
+                className="relative flex items-center gap-2 px-4 py-2 bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95 shadow-sm"
               >
                 <Lightbulb size={18} className={hint ? "fill-yellow-600 dark:fill-yellow-500" : ""} />
                 <span className="font-bold text-sm">HINT</span>
@@ -1851,7 +1849,7 @@ const App: React.FC = () => {
               </button>
           </div>
           
-          <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800/50 pb-2">
+          <div className="bg-slate-200/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800/50 pb-2">
             <ShapeTray 
               shapes={availableShapes} 
               selectedIndex={selectedShapeIdx} 
@@ -1886,10 +1884,10 @@ const App: React.FC = () => {
   const renderLeaderboard = () => (
     <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 ${theme}`}>
       <div className="w-full flex items-center justify-between mb-8">
-        <button onClick={() => setView('home')} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"><ArrowLeft size={24} /></button>
+        <button onClick={() => setView('home')} className="p-2 bg-white hover:bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm"><ArrowLeft size={24} /></button>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><ListOrdered className="text-purple-500" /> {t('myBestScores')}</h2>
         {leaderboard.length > 0 ? (
-          <button onClick={clearLeaderboard} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-red-500 hover:bg-red-500/20 hover:text-red-600 transition-colors"><Trash2 size={20} /></button>
+          <button onClick={clearLeaderboard} className="p-2 bg-white hover:bg-red-50 dark:bg-slate-800 rounded-lg text-red-500 hover:text-red-600 transition-colors border border-slate-200 dark:border-slate-700 shadow-sm"><Trash2 size={20} /></button>
         ) : <div className="w-10"></div>}
       </div>
 
@@ -1904,11 +1902,11 @@ const App: React.FC = () => {
             {leaderboard.map((record, i) => {
               const dateObj = new Date(record.timestamp);
               return (
-                <div key={i} className={`flex items-center justify-between p-3 rounded-xl ${i === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-transparent border border-yellow-500/30' : i === 1 ? 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700' : i === 2 ? 'bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800' : 'bg-transparent border-b border-slate-100 dark:border-slate-800'}`}>
+                <div key={i} className={`flex items-center justify-between p-3 rounded-xl ${i === 0 ? 'bg-gradient-to-r from-yellow-50 to-white dark:from-yellow-500/20 dark:to-transparent border border-yellow-200 dark:border-yellow-500/30' : i === 1 ? 'bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700' : i === 2 ? 'bg-orange-50 dark:bg-slate-800/50 border border-orange-100 dark:border-slate-800' : 'bg-transparent border-b border-slate-100 dark:border-slate-800'}`}>
                   <div className="flex items-center gap-4">
-                     <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shrink-0 ${i === 0 ? 'bg-yellow-500 text-black' : i === 1 ? 'bg-slate-400 text-black' : i === 2 ? 'bg-orange-700 text-white' : 'text-slate-400 dark:text-slate-500'}`}>{i + 1}</div>
+                     <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shrink-0 ${i === 0 ? 'bg-yellow-500 text-white dark:text-black' : i === 1 ? 'bg-slate-400 text-white dark:text-black' : i === 2 ? 'bg-orange-700 text-white' : 'text-slate-400 dark:text-slate-500'}`}>{i + 1}</div>
                      <div className="flex flex-col">
-                        <span className="text-slate-800 dark:text-slate-200 font-mono text-lg leading-tight">{record.score.toLocaleString()}</span>
+                        <span className="text-slate-900 dark:text-slate-200 font-mono text-lg leading-tight">{record.score.toLocaleString()}</span>
                         <div className="flex items-center gap-1 text-[10px] text-slate-500"><Calendar size={10} /><span>{dateObj.toLocaleDateString()}</span></div>
                      </div>
                   </div>
@@ -1923,7 +1921,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`${theme} bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-200 font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-300`}>
+    <div className={`${theme} bg-slate-100 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-200 font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-300`}>
       {view === 'home' && renderHome()}
       {view === 'leaderboard' && renderLeaderboard()}
       {view === 'world-select' && renderWorldSelect()}

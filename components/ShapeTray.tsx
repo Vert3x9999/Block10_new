@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ShapeObj } from '../types';
 import ShapeRenderer from './ShapeRenderer';
@@ -35,10 +34,10 @@ const ShapeTray: React.FC<ShapeTrayProps> = ({ shapes, selectedIndex, draggingIn
             }}
             className={`
               relative flex items-center justify-center
-              w-20 h-20 rounded-xl transition-all duration-200 transform cursor-grab active:cursor-grabbing border border-transparent
+              w-20 h-20 rounded-xl transition-all duration-200 transform cursor-grab active:cursor-grabbing border
               ${isSelected 
-                  ? 'bg-slate-300 dark:bg-slate-700 ring-2 ring-blue-500 dark:ring-white shadow-lg' 
-                  : 'bg-slate-200/50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800'}
+                  ? 'bg-white dark:bg-slate-700 ring-2 ring-blue-500 dark:ring-white shadow-lg scale-105 border-blue-200 dark:border-transparent' 
+                  : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700'}
               ${isDragging ? 'opacity-0' : 'opacity-100'}
             `}
           >
