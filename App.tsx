@@ -743,47 +743,44 @@ const App: React.FC = () => {
         onClick={handleBackgroundClick}
       >
         {/* Header */}
-        <div className="w-full flex justify-between items-start mb-6">
-          <div className="flex flex-col gap-1">
-             <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setShowResetConfirm(true)}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-slate-700"
-                >
-                  <Home size={18} />
-                </button>
-                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 leading-none">
-                  BlockFit
-                </h1>
+        <div className="w-full grid grid-cols-[auto_1fr_auto] items-center mb-8 gap-4">
+          
+          {/* Left: Home Button */}
+          <div className="flex items-center gap-2 justify-self-start">
+             <button 
+                onClick={() => setShowResetConfirm(true)}
+                className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors border border-slate-700 shadow-lg"
+              >
+                <Home size={20} />
+              </button>
+          </div>
+          
+          {/* Center: Current Score */}
+          <div className="flex flex-col items-center justify-self-center relative">
+             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-1">Current Score</span>
+             <div className="relative">
+                <span className="text-5xl font-mono font-black text-white tracking-tighter drop-shadow-2xl leading-none">
+                  {score.toLocaleString()}
+                </span>
+                {comboCount > 1 && (
+                  <div className="absolute -right-8 -top-4 rotate-12 flex items-center justify-center bg-yellow-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg ring-2 ring-white/20">
+                      x{comboCount}
+                  </div>
+                )}
              </div>
           </div>
           
-          <div className="flex gap-4">
-             {/* High Score Block */}
-             <div className="flex flex-col items-end">
-               <div className="flex items-center gap-1 text-yellow-500 mb-0.5">
-                  <Crown size={12} fill="currentColor" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Best</span>
-               </div>
-               <span className="text-xl font-mono font-bold leading-none bg-clip-text text-transparent bg-gradient-to-b from-yellow-300 to-amber-500 drop-shadow-[0_2px_10px_rgba(234,179,8,0.3)]">
-                 {currentBestScore.toLocaleString()}
-               </span>
+          {/* Right: Best Score */}
+          <div className="flex flex-col items-end justify-self-end bg-slate-900/50 p-2 pr-3 pl-4 rounded-xl border border-slate-800/50 backdrop-blur-sm">
+             <div className="flex items-center gap-1.5 text-yellow-500 mb-0.5">
+                <Crown size={14} fill="currentColor" className="drop-shadow-glow" />
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">Best</span>
              </div>
-             
-             {/* Current Score Block */}
-             <div className="flex flex-col items-end relative">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Score</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-white font-mono font-bold text-3xl leading-none tracking-tight">{score.toLocaleString()}</span>
-                  {comboCount > 1 && (
-                    <div className="absolute right-0 top-full mt-1 flex items-center gap-1 text-yellow-400 animate-pulse whitespace-nowrap">
-                        <Zap size={12} className="fill-yellow-400" />
-                        <span className="text-xs font-bold italic tracking-wider">x{comboCount}</span>
-                    </div>
-                  )}
-                </div>
-             </div>
+             <span className="text-xl font-mono font-bold leading-none bg-clip-text text-transparent bg-gradient-to-b from-yellow-300 to-amber-500 drop-shadow-sm">
+               {currentBestScore.toLocaleString()}
+             </span>
           </div>
+
         </div>
   
         {/* Grid Container */}
