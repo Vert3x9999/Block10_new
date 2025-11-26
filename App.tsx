@@ -7,7 +7,7 @@ import { playPlaceSound, playClearSound, playGameOverSound, playShuffleSound, pl
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon, X, HelpCircle, Coins, ShoppingBag, HeartPulse } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon, X, HelpCircle, Coins, ShoppingBag, HeartPulse, Backpack } from 'lucide-react';
 
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
@@ -117,6 +117,9 @@ const App: React.FC = () => {
   
   // Shop State
   const [showShop, setShowShop] = useState<boolean>(false);
+  
+  // Inventory Modal State
+  const [showInventory, setShowInventory] = useState<boolean>(false);
 
   // Revive State
   const [showRevivePrompt, setShowRevivePrompt] = useState<boolean>(false);
@@ -306,6 +309,7 @@ const App: React.FC = () => {
     setShowResetConfirm(false);
     setShowDailyReward(false);
     setShowShop(false);
+    setShowInventory(false);
     
     setView('game');
   };
@@ -769,23 +773,26 @@ const App: React.FC = () => {
           </p>
         </div>
 
-        {/* Inventory Dashboard */}
-        <div className="w-full max-w-xs bg-slate-900/50 p-3 rounded-xl border border-slate-800 backdrop-blur-sm grid grid-cols-3 gap-2 text-xs font-mono mb-2">
-            <div className="flex flex-col items-center gap-1 text-yellow-500">
+        {/* Inventory Dashboard Button */}
+        <button 
+          onClick={() => setShowInventory(true)}
+          className="w-full max-w-xs bg-slate-900/50 hover:bg-slate-800/80 transition-colors p-3 rounded-xl border border-slate-800 backdrop-blur-sm grid grid-cols-3 gap-2 text-xs font-mono mb-2 group active:scale-95"
+        >
+            <div className="flex flex-col items-center gap-1 text-yellow-500 group-hover:scale-110 transition-transform">
                 <Coins size={16} />
                 <span>{inventory.coins}</span>
             </div>
-            <div className="flex flex-col items-center gap-1 text-pink-500">
+            <div className="flex flex-col items-center gap-1 text-pink-500 group-hover:scale-110 transition-transform">
                 <HeartPulse size={16} />
                 <span>{inventory.revives}</span>
             </div>
-            <div className="flex flex-col items-center gap-1 text-blue-400">
+            <div className="flex flex-col items-center gap-1 text-blue-400 group-hover:scale-110 transition-transform">
                 <div className="flex gap-1">
                     <Lightbulb size={12} /> <RotateCcw size={12} />
                 </div>
                 <span>{inventory.hints + inventory.undos + inventory.refreshes + inventory.rotators} Items</span>
             </div>
-        </div>
+        </button>
 
         <div className="flex flex-col gap-4 w-full max-w-xs">
           <button 
@@ -851,6 +858,47 @@ const App: React.FC = () => {
         <div className="absolute bottom-4 text-slate-500 text-[10px] font-mono opacity-60">
           Author: Vertex Wei
         </div>
+
+        {/* Inventory Detail Modal */}
+        {showInventory && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
+             <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
+                <div className="flex justify-between w-full items-center mb-2">
+                   <h2 className="text-xl font-bold text-white flex items-center gap-2"><Backpack className="text-blue-500" /> My Inventory</h2>
+                   <button onClick={() => setShowInventory(false)}><X className="text-slate-500 hover:text-white" /></button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-yellow-500 font-bold"><Coins size={20} /> Coins</div>
+                       <span className="text-xl font-mono">{inventory.coins}</span>
+                    </div>
+                    <div className="bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-pink-500 font-bold"><HeartPulse size={20} /> Revives</div>
+                       <span className="text-xl font-mono">{inventory.revives}</span>
+                    </div>
+                    <div className="bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-yellow-400 font-bold"><Lightbulb size={20} /> Hints</div>
+                       <span className="text-xl font-mono">{inventory.hints}</span>
+                    </div>
+                    <div className="bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-blue-400 font-bold"><RotateCcw size={20} /> Undos</div>
+                       <span className="text-xl font-mono">{inventory.undos}</span>
+                    </div>
+                    <div className="bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-green-500 font-bold"><Shuffle size={20} /> Shuffles</div>
+                       <span className="text-xl font-mono">{inventory.refreshes}</span>
+                    </div>
+                    <div className="bg-slate-800 p-3 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-purple-500 font-bold"><RefreshCw size={20} /> Rotates</div>
+                       <span className="text-xl font-mono">{inventory.rotators}</span>
+                    </div>
+                </div>
+
+                <button onClick={() => setShowInventory(false)} className="mt-2 w-full py-3 bg-slate-800 text-slate-400 rounded-xl font-bold">Close</button>
+             </div>
+          </div>
+        )}
 
         {/* Shop Modal */}
         {showShop && (
@@ -1128,6 +1176,11 @@ const App: React.FC = () => {
                       )}
                     </div>
                     {isUnlocked && <div className="absolute top-2 right-2 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
+                    
+                    {/* Souvenir Name Label */}
+                    <div className={`mt-2 text-xs font-bold text-center px-2 line-clamp-1 ${isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
+                        {isUnlocked ? souvenir.name : '???'}
+                    </div>
                 </button>
               );
           })}
