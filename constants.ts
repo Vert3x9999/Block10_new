@@ -59,44 +59,53 @@ export const SHAPES = [...SHAPES_TIER_1, ...SHAPES_TIER_2, ...SHAPES_TIER_3];
 
 // --- Level Data ---
 
-// Helper for Linear Interpolation
-const lerp = (start: number, end: number, t: number) => {
-  return Math.round(start + (end - start) * t);
-};
-
 const generateLevels = (
   chapterId: string,
   movesRange: [number, number], // [start, end]
   spmRange: [number, number],   // Score Per Move [start, end]
   startCoinValue: number
 ): any[] => {
-  return Array.from({ length: 15 }, (_, i) => {
-    // 0 to 1 progress factor through the chapter
+  const levels = [];
+  let prevTargetScore = 0;
+
+  for (let i = 0; i < 15; i++) {
     const t = i / 14; 
+    
+    // Moves: Linearly interpolate and floor to integer
+    const rawMoves = movesRange[0] + (movesRange[1] - movesRange[0]) * t;
+    const maxMoves = Math.max(20, Math.floor(rawMoves));
 
-    // Moves decrease or stay steady (floored to avoid decimals)
-    // Enforce a hard floor of 20 moves to prevent it becoming unplayable
-    const rawMoves = lerp(movesRange[0], movesRange[1], t);
-    const maxMoves = Math.max(20, rawMoves);
+    // SPM: Keep float for calculation
+    const spm = spmRange[0] + (spmRange[1] - spmRange[0]) * t;
 
-    // SPM increases as player gets better
-    const spm = lerp(spmRange[0], spmRange[1], t);
+    // Target Calculation
+    let rawTarget = maxMoves * spm;
+    
+    // 1. Round to nearest 10.
+    // This ensures base target ends in 0.
+    // Consequently:
+    // 1.5x (2 Crowns) will end in 0 or 5 (e.g., 100->150, 110->165).
+    // 2.0x (3 Crowns) will end in 0.
+    let targetScore = Math.ceil(rawTarget / 10) * 10;
 
-    // Target Score = Moves * SPM
-    // This ensures that even with fewer moves, the difficulty scales by efficiency required
-    const targetScore = Math.round(maxMoves * spm);
+    // 2. Enforce Monotonic Increase
+    // Ensure the target score never drops below the previous level's target,
+    // even if move count drops. We add a small step (+10) to ensure progression.
+    if (i > 0 && targetScore <= prevTargetScore) {
+        targetScore = prevTargetScore + 10;
+    }
+    
+    prevTargetScore = targetScore;
 
-    // Coin Reward: Base start value + 1 per level index
-    const coinReward = startCoinValue + i;
-
-    return {
+    levels.push({
       id: `${chapterId}-${i + 1}`,
       label: `${i + 1}`,
       targetScore: targetScore,
       maxMoves: maxMoves,
-      coinReward: coinReward
-    };
-  });
+      coinReward: startCoinValue + i
+    });
+  }
+  return levels;
 };
 
 export const CHAPTERS: ChapterData[] = [
@@ -105,27 +114,32 @@ export const CHAPTERS: ChapterData[] = [
     title: 'Chapter 1: Genesis',
     description: 'The journey begins. Relax and enjoy.',
     souvenirId: 's_genesis_cube',
-    // Moves: 50 -> 40 (Very Generous)
-    // SPM: 50 -> 80 (Very Easy. Basic placement is enough to pass)
-    levels: generateLevels('ch1', [50, 40], [50, 80], 10) 
+    // Moves: 40 constant (Very Generous)
+    // SPM: 120 -> 150
+    // Base placement ~200/move. 
+    // 1 Crown (120) is guaranteed if you just play.
+    // 3 Crown (240) requires minimal line clearing.
+    levels: generateLevels('ch1', [40, 40], [120, 150], 10) 
   },
   {
     id: 'ch2',
     title: 'Chapter 2: Challenge',
     description: 'Tight spaces, but plenty of time.',
     souvenirId: 's_golden_compass',
-    // Moves: 45 -> 35 (Standard+)
-    // SPM: 100 -> 180 (Easy. Occasional line clears required)
-    levels: generateLevels('ch2', [45, 35], [100, 180], 25) 
+    // Moves: 40 -> 35
+    // SPM: 150 -> 220
+    // 3 Crown (300-440) requires consistent line clears.
+    levels: generateLevels('ch2', [40, 35], [150, 220], 25) 
   },
   {
     id: 'ch3',
     title: 'Chapter 3: Ascension',
     description: 'Rise above. A smooth step up.',
     souvenirId: 's_crystal_prism',
-    // Moves: 40 -> 30 (Normal)
-    // SPM: 200 -> 350 (Moderate. consistent play required, but very achievable)
-    levels: generateLevels('ch3', [40, 30], [200, 350], 40) 
+    // Moves: 35 -> 30
+    // SPM: 220 -> 320
+    // 3 Crown (440-640) requires good combo usage.
+    levels: generateLevels('ch3', [35, 30], [220, 320], 40) 
   }
 ];
 
