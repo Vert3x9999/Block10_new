@@ -150,7 +150,7 @@ const App: React.FC = () => {
     }
   };
 
-  const startNewGame = (mode: GameMode, level?: LevelConfig) => {
+  const startNewGame = (mode: GameMode, level?: LevelConfig | null) => {
     setGameMode(mode);
     setCurrentLevel(level || null);
     
@@ -177,6 +177,13 @@ const App: React.FC = () => {
     setRefreshLeft(3);
 
     setView('game');
+  };
+
+  const calculateCrowns = (currentScore: number, target: number) => {
+    if (currentScore >= target * 2) return 3;
+    if (currentScore >= target * 1.5) return 2;
+    if (currentScore >= target) return 1;
+    return 0;
   };
 
   // --- Initialization ---
@@ -215,13 +222,6 @@ const App: React.FC = () => {
     }
   }, [view, availableShapes, grid, clearingLines, isGameOver, score, gameMode, currentLevel, levelResult]);
 
-
-  const calculateCrowns = (currentScore: number, target: number) => {
-    if (currentScore >= target * 2) return 3;
-    if (currentScore >= target * 1.5) return 2;
-    if (currentScore >= target) return 1;
-    return 0;
-  };
 
   // --- Core Placement Logic ---
   const attemptPlaceShape = useCallback((shapeIdx: number, r: number, c: number) => {
@@ -915,7 +915,7 @@ const App: React.FC = () => {
                   Undo Last Move {undoLeft > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{undoLeft}</span>}
                 </button>
                 <button 
-                  onClick={() => startNewGame(gameMode, currentLevel || undefined)}
+                  onClick={() => startNewGame(gameMode, currentLevel)}
                   className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/25 active:scale-95"
                 >
                   <RefreshCw size={18} />
@@ -938,7 +938,7 @@ const App: React.FC = () => {
                <p className="text-slate-400 mb-6 text-sm">Progress will be lost.</p>
                <div className="flex flex-col gap-3 w-full">
                  <button 
-                   onClick={() => startNewGame(gameMode, currentLevel || undefined)}
+                   onClick={() => startNewGame(gameMode, currentLevel)}
                    className="w-full py-3 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg"
                  >
                    Restart
