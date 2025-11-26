@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress, Inventory, Souvenir } from './types';
 import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, SOUVENIRS, SHOP_PRICES } from './constants';
@@ -1126,64 +1127,70 @@ const App: React.FC = () => {
     const progress = Math.round((unlockedCount / totalSouvenirs) * 100);
 
     return (
-      <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
-        <div className="w-full flex items-center justify-between mb-8">
-          <button onClick={() => setView('home')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
-            <ArrowLeft size={24} />
-          </button>
-          <h2 className="text-2xl font-bold text-white">Collection</h2>
-          <div className="w-10"></div>
-        </div>
-
-        {/* Collection Progress */}
-        <div className="w-full bg-slate-900 rounded-xl p-4 mb-6 border border-slate-800">
-           <div className="flex justify-between text-xs font-bold mb-2">
-              <span className="text-slate-400">Total Progress</span>
-              <span className="text-pink-400">{progress}%</span>
-           </div>
-           <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-pink-500 transition-all duration-1000" style={{width: `${progress}%`}} />
-           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 w-full overflow-y-auto pb-4 visible-scrollbar">
-          {SOUVENIRS.map(souvenir => {
-              const isUnlocked = unlockedSouvenirs.includes(souvenir.id);
-              const Icon = IconMap[souvenir.icon] || Box;
-
-              return (
-                <button 
-                  key={souvenir.id} 
-                  onClick={() => setSelectedSouvenir(souvenir)}
-                  className={`
-                    relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group aspect-[3/4]
-                    ${isUnlocked 
-                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-750 hover:border-slate-600 shadow-lg' 
-                      : 'bg-slate-900 border-slate-800 opacity-80 cursor-default'}
-                  `}
-                >
-                    <div className={`
-                      w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300
-                      ${isUnlocked ? 'bg-slate-950 shadow-inner ring-1 ring-white/10' : 'bg-slate-950'}
-                    `}>
-                      {isUnlocked ? (
-                          <Icon size={32} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
-                      ) : (
-                          <div className="relative">
-                            <Icon size={32} className="text-slate-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
-                            <HelpCircle size={20} className="absolute inset-0 m-auto text-slate-700" />
-                          </div>
-                      )}
-                    </div>
-                    {isUnlocked && <div className="absolute top-3 right-3 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
-                    
-                    {/* Souvenir Name Label */}
-                    <div className={`mt-2 text-xs font-bold text-center px-1 line-clamp-2 ${isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
-                        {isUnlocked ? souvenir.name : '???'}
-                    </div>
+      <div className="flex flex-col items-center h-screen overflow-hidden p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
+        {/* Header Section (Fixed) */}
+        <div className="w-full flex-none">
+            <div className="w-full flex items-center justify-between mb-6">
+                <button onClick={() => setView('home')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
+                    <ArrowLeft size={24} />
                 </button>
-              );
-          })}
+                <h2 className="text-2xl font-bold text-white">Collection</h2>
+                <div className="w-10"></div>
+            </div>
+
+            {/* Collection Progress */}
+            <div className="w-full bg-slate-900 rounded-xl p-4 mb-4 border border-slate-800">
+                <div className="flex justify-between text-xs font-bold mb-2">
+                    <span className="text-slate-400">Total Progress</span>
+                    <span className="text-pink-400">{progress}%</span>
+                </div>
+                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-pink-500 transition-all duration-1000" style={{width: `${progress}%`}} />
+                </div>
+            </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 w-full overflow-y-auto visible-scrollbar pb-24">
+            <div className="grid grid-cols-2 gap-4">
+                {SOUVENIRS.map(souvenir => {
+                    const isUnlocked = unlockedSouvenirs.includes(souvenir.id);
+                    const Icon = IconMap[souvenir.icon] || Box;
+
+                    return (
+                        <button 
+                            key={souvenir.id} 
+                            onClick={() => setSelectedSouvenir(souvenir)}
+                            className={`
+                                relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group aspect-[4/5]
+                                ${isUnlocked 
+                                    ? 'bg-slate-800 border-slate-700 hover:bg-slate-750 hover:border-slate-600 shadow-lg' 
+                                    : 'bg-slate-900 border-slate-800 opacity-80 cursor-default'}
+                            `}
+                        >
+                            <div className={`
+                                w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300
+                                ${isUnlocked ? 'bg-slate-950 shadow-inner ring-1 ring-white/10' : 'bg-slate-950'}
+                            `}>
+                                {isUnlocked ? (
+                                    <Icon size={32} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+                                ) : (
+                                    <div className="relative">
+                                        <Icon size={32} className="text-slate-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
+                                        <HelpCircle size={20} className="absolute inset-0 m-auto text-slate-700" />
+                                    </div>
+                                )}
+                            </div>
+                            {isUnlocked && <div className="absolute top-3 right-3 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
+                            
+                            {/* Souvenir Name Label */}
+                            <div className={`mt-2 text-xs font-bold text-center px-1 line-clamp-2 ${isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
+                                {isUnlocked ? souvenir.name : '???'}
+                            </div>
+                        </button>
+                    );
+                })}
+            </div>
         </div>
 
         {/* Premium Souvenir Detail Modal */}

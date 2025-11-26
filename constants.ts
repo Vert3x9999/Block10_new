@@ -1,3 +1,4 @@
+
 import { ShapeDefinition, ChapterData, Souvenir } from './types';
 
 export const BOARD_SIZE = 10;
@@ -64,14 +65,14 @@ const generateLevels = (
   scoreIncrement: number, 
   baseMoves: number, 
   moveDecrement: number,
-  startGlobalIndex: number
+  startGlobalIndex: number,
+  startCoinValue: number
 ): any[] => {
   return Array.from({ length: 15 }, (_, i) => {
-    const globalIndex = startGlobalIndex + i;
-    // Rule: Base 15 + 1 per level index + 5 extra for every 15 levels (chapter bonus)
-    // Updated logic: +5 coins every chapter (15 levels) instead of +10
-    const chapterBonus = Math.floor(globalIndex / 15) * 5;
-    const coinReward = 15 + globalIndex + chapterBonus;
+    // Coin Reward: Base start value + 1 per level index
+    // Ch1: 10, 11, 12... 24
+    // Ch2: 25, 26, 27... 39
+    const coinReward = startCoinValue + i;
 
     return {
       id: `${chapterId}-${i + 1}`,
@@ -90,14 +91,14 @@ export const CHAPTERS: ChapterData[] = [
     title: 'Chapter 1: Genesis',
     description: 'The journey begins. Master the basics.',
     souvenirId: 's_genesis_cube',
-    levels: generateLevels('ch1', 1000, 300, 40, 0.5, 0) // Levels 1-15 (Global 0-14)
+    levels: generateLevels('ch1', 1000, 300, 40, 0.5, 0, 10) // Coins 10-24
   },
   {
     id: 'ch2',
     title: 'Chapter 2: Challenge',
     description: 'Tight spaces, limited moves.',
     souvenirId: 's_golden_compass',
-    levels: generateLevels('ch2', 5000, 1000, 30, 0.8, 15) // Levels 16-30 (Global 15-29)
+    levels: generateLevels('ch2', 5000, 1000, 30, 0.8, 15, 25) // Coins 25-39
   }
 ];
 
