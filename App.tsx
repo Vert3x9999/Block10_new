@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress } from './types';
-import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS } from './constants';
+import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress, Inventory, Souvenir } from './types';
+import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, SOUVENIRS } from './constants';
 import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove } from './utils/gameLogic';
 import { playPlaceSound, playClearSound, playGameOverSound, playShuffleSound, playLevelWinSound, playLevelFailSound } from './utils/soundEffects';
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2 } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon } from 'lucide-react';
 
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
@@ -25,8 +25,22 @@ interface ScoreRecord {
   timestamp: number;
 }
 
-type ViewState = 'home' | 'game' | 'leaderboard' | 'chapter-select' | 'level-select';
+type ViewState = 'home' | 'game' | 'leaderboard' | 'chapter-select' | 'level-select' | 'souvenirs';
 type GameMode = 'infinite' | 'level';
+
+// Icon mapping for Souvenirs
+const IconMap: {[key: string]: React.ElementType} = {
+  box: Box,
+  compass: Compass,
+  gem: Gem,
+  scroll: Scroll,
+  star: Star,
+  key: Key,
+  hourglass: Hourglass,
+  trophy: Trophy,
+  infinity: InfinityIcon,
+  crown: Crown
+};
 
 const App: React.FC = () => {
   // --- View State ---
@@ -37,6 +51,7 @@ const App: React.FC = () => {
   const [grid, setGrid] = useState<GridType>(createEmptyGrid());
   const [score, setScore] = useState<number>(0);
   const [isNewHighScore, setIsNewHighScore] = useState<boolean>(false);
+  const [movesLeft, setMovesLeft] = useState<number>(0);
   
   // Level Mode State
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
@@ -47,15 +62,36 @@ const App: React.FC = () => {
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
-  const [levelResult, setLevelResult] = useState<{success: boolean, crowns: number} | null>(null);
+  const [levelResult, setLevelResult] = useState<{success: boolean, crowns: number, rewards?: string[]} | null>(null);
 
-  // Leaderboard State (Local Only)
+  // Meta System (Inventory, Daily, Souvenirs)
+  const [inventory, setInventory] = useState<Inventory>(() => {
+    try {
+      const saved = localStorage.getItem('blockfit-inventory');
+      return saved ? JSON.parse(saved) : { hints: 5, undos: 5, refreshes: 5 }; // Starter pack
+    } catch { return { hints: 5, undos: 5, refreshes: 5 }; }
+  });
+
+  const [unlockedSouvenirs, setUnlockedSouvenirs] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('blockfit-souvenirs');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const [lastCheckIn, setLastCheckIn] = useState<string | null>(() => {
+     return localStorage.getItem('blockfit-last-checkin');
+  });
+
+  const [showDailyReward, setShowDailyReward] = useState<boolean>(false);
+  const [dailyRewardItems, setDailyRewardItems] = useState<string[]>([]);
+
+  // Leaderboard State
   const [leaderboard, setLeaderboard] = useState<ScoreRecord[]>(() => {
     try {
       const saved = localStorage.getItem('blockfit-leaderboard');
       if (!saved) return [];
       const parsed = JSON.parse(saved);
-      // Migration: If old format (number[]), convert to ScoreRecord[]
       if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'number') {
         const migrated = parsed.map((s: number) => ({
           score: s,
@@ -79,26 +115,37 @@ const App: React.FC = () => {
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
   const [comboCount, setComboCount] = useState<number>(0);
 
-  // --- Limits State ---
-  const [hintLeft, setHintLeft] = useState<number>(3);
-  const [undoLeft, setUndoLeft] = useState<number>(3);
-  const [redoLeft, setRedoLeft] = useState<number>(3);
-  const [refreshLeft, setRefreshLeft] = useState<number>(3);
-  
-  // Dragging Refs (Optimization: Don't use State for high-frequency updates)
+  // Dragging Refs
   const dragInfoRef = useRef<DragInfo | null>(null);
   const floatingShapeRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false); // Only for UI visibility toggles
+  const [isDragging, setIsDragging] = useState(false);
 
   // Undo/Redo Stacks
   const [history, setHistory] = useState<GameState[]>([]);
   const [redoStack, setRedoStack] = useState<GameState[]>([]);
 
+  // --- Persistence Wrappers ---
+  const updateInventory = (type: keyof Inventory, amount: number) => {
+    setInventory(prev => {
+      const next = { ...prev, [type]: prev[type] + amount };
+      localStorage.setItem('blockfit-inventory', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const unlockSouvenir = (id: string) => {
+    if (!unlockedSouvenirs.includes(id)) {
+      const next = [...unlockedSouvenirs, id];
+      setUnlockedSouvenirs(next);
+      localStorage.setItem('blockfit-souvenirs', JSON.stringify(next));
+    }
+  };
+
   // --- Helpers ---
   const generateNewShapes = useCallback(() => {
     const newShapes: ShapeObj[] = [];
-    const shapePool = SHAPES; // Use full pool for now
+    const shapePool = SHAPES;
 
     for (let i = 0; i < 3; i++) {
       const randomShapeIdx = Math.floor(Math.random() * shapePool.length);
@@ -140,6 +187,15 @@ const App: React.FC = () => {
       const newProgress = { ...levelProgress, [levelId]: crowns };
       setLevelProgress(newProgress);
       localStorage.setItem('blockfit-level-progress', JSON.stringify(newProgress));
+      
+      // Check for Chapter Completion Souvenir
+      const chapter = CHAPTERS.find(c => c.levels.some(l => l.id === levelId));
+      if (chapter) {
+         const allCleared = chapter.levels.every(l => (newProgress[l.id] || 0) > 0);
+         if (allCleared) {
+            unlockSouvenir(chapter.souvenirId);
+         }
+      }
     }
   };
 
@@ -153,6 +209,7 @@ const App: React.FC = () => {
   const startNewGame = (mode: GameMode, level?: LevelConfig | null) => {
     setGameMode(mode);
     setCurrentLevel(level || null);
+    setMovesLeft(level ? level.maxMoves : 0);
     
     setGrid(createEmptyGrid());
     setScore(0);
@@ -170,12 +227,6 @@ const App: React.FC = () => {
     dragInfoRef.current = null;
     setIsDragging(false);
     
-    // Reset Limits
-    setHintLeft(3);
-    setUndoLeft(3);
-    setRedoLeft(3);
-    setRefreshLeft(3);
-
     setView('game');
   };
 
@@ -186,6 +237,33 @@ const App: React.FC = () => {
     return 0;
   };
 
+  const handleDailyCheckIn = () => {
+     const today = new Date().toDateString();
+     if (lastCheckIn !== today) {
+        // Grant Rewards
+        const rewards = [];
+        const rand = Math.random();
+        
+        // Always give at least 1 refresh
+        updateInventory('refreshes', 1);
+        rewards.push('+1 Shuffle');
+
+        if (rand > 0.3) {
+           updateInventory('undos', 1);
+           rewards.push('+1 Undo');
+        }
+        if (rand > 0.6) {
+           updateInventory('hints', 1);
+           rewards.push('+1 Hint');
+        }
+
+        setDailyRewardItems(rewards);
+        setShowDailyReward(true);
+        setLastCheckIn(today);
+        localStorage.setItem('blockfit-last-checkin', today);
+     }
+  };
+
   // --- Initialization ---
   useEffect(() => {
     if (view === 'game' && availableShapes.length === 0 && !isGameOver && !levelResult) {
@@ -193,11 +271,39 @@ const App: React.FC = () => {
     }
   }, [view, availableShapes, isGameOver, levelResult, generateNewShapes]);
 
-  // --- Game Over Check (Infinite & Level Fail) ---
+  // --- Game Over Check ---
   useEffect(() => {
     if (view !== 'game' || isGameOver || levelResult) return;
+    
+    // Level Mode: Check Moves
+    if (gameMode === 'level' && currentLevel && movesLeft <= 0 && !clearingLines) {
+        // Out of moves! Check score.
+        const crowns = calculateCrowns(score, currentLevel.targetScore);
+        if (crowns >= 1) {
+            // Calculate Rewards for every 5th level
+            const levelNum = parseInt(currentLevel.label);
+            const rewards: string[] = [];
+            if (levelNum % 5 === 0) {
+               updateInventory('refreshes', 1);
+               rewards.push('+1 Shuffle');
+               if (levelNum % 10 === 0) {
+                   updateInventory('undos', 1);
+                   rewards.push('+1 Undo');
+               }
+            }
+            setLevelResult({ success: true, crowns, rewards: rewards.length > 0 ? rewards : undefined });
+            saveLevelProgress(currentLevel.id, crowns);
+            playLevelWinSound();
+        } else {
+            setIsGameOver(true);
+            playLevelFailSound();
+        }
+        return;
+    }
+
     if (availableShapes.length === 0 && !clearingLines) return;
 
+    // Standard Grid Lock Check
     if (availableShapes.length > 0 && !clearingLines) {
       const matrices = availableShapes.map(s => s.matrix);
       const over = checkGameOver(grid, matrices);
@@ -207,20 +313,20 @@ const App: React.FC = () => {
           saveScoreToLeaderboard(score);
           playGameOverSound();
         } else if (gameMode === 'level' && currentLevel) {
-           // Level Mode: Check if we passed with at least 1 crown
+           // If board locks in level mode, check if we have enough score anyway
            const crowns = calculateCrowns(score, currentLevel.targetScore);
            if (crowns >= 1) {
               setLevelResult({ success: true, crowns });
               saveLevelProgress(currentLevel.id, crowns);
               playLevelWinSound();
            } else {
-              setIsGameOver(true); // Failed
+              setIsGameOver(true); 
               playLevelFailSound();
            }
         }
       }
     }
-  }, [view, availableShapes, grid, clearingLines, isGameOver, score, gameMode, currentLevel, levelResult]);
+  }, [view, availableShapes, grid, clearingLines, isGameOver, score, gameMode, currentLevel, levelResult, movesLeft]);
 
 
   // --- Core Placement Logic ---
@@ -234,11 +340,16 @@ const App: React.FC = () => {
 
     if (canPlace) {
       const currentState: GameState = {
-        grid, score, availableShapes, isGameOver, comboCount
+        grid, score, availableShapes, isGameOver, comboCount, movesLeft
       };
       setHistory(prev => [...prev, currentState]);
       setRedoStack([]);
       setHint(null);
+
+      // Decrement Moves in Level Mode
+      if (gameMode === 'level') {
+         setMovesLeft(prev => Math.max(0, prev - 1));
+      }
 
       const newGrid = placeShapeOnGrid(grid, shapeObj.matrix, { r, c }, shapeObj.color);
       
@@ -279,11 +390,21 @@ const App: React.FC = () => {
           setScore(finalNewScore);
           setClearingLines(null);
           
-          // Check Level Win Condition (Instant 3 Crowns)
+          // Instant Win Check (3 Crowns)
           if (gameMode === 'level' && currentLevel) {
             const crowns = calculateCrowns(finalNewScore, currentLevel.targetScore);
             if (crowns === 3) {
-              setLevelResult({ success: true, crowns: 3 });
+              const levelNum = parseInt(currentLevel.label);
+              const rewards: string[] = [];
+              if (levelNum % 5 === 0) {
+                 updateInventory('refreshes', 1);
+                 rewards.push('+1 Shuffle');
+                 if (levelNum % 10 === 0) {
+                    updateInventory('undos', 1);
+                    rewards.push('+1 Undo');
+                 }
+              }
+              setLevelResult({ success: true, crowns: 3, rewards: rewards.length > 0 ? rewards : undefined });
               saveLevelProgress(currentLevel.id, 3);
               playLevelWinSound();
             }
@@ -298,18 +419,27 @@ const App: React.FC = () => {
         const nextShapes = availableShapes.filter((_, idx) => idx !== shapeIdx);
         setAvailableShapes(nextShapes);
         
-        // Check Level Win Condition (Instant 3 Crowns)
         if (gameMode === 'level' && currentLevel) {
             const crowns = calculateCrowns(newScore, currentLevel.targetScore);
             if (crowns === 3) {
-              setLevelResult({ success: true, crowns: 3 });
+              const levelNum = parseInt(currentLevel.label);
+              const rewards: string[] = [];
+              if (levelNum % 5 === 0) {
+                 updateInventory('refreshes', 1);
+                 rewards.push('+1 Shuffle');
+                 if (levelNum % 10 === 0) {
+                     updateInventory('undos', 1);
+                     rewards.push('+1 Undo');
+                 }
+              }
+              setLevelResult({ success: true, crowns: 3, rewards: rewards.length > 0 ? rewards : undefined });
               saveLevelProgress(currentLevel.id, 3);
               playLevelWinSound();
             }
         }
       }
     }
-  }, [grid, availableShapes, clearingLines, score, comboCount, isGameOver, gameMode, currentLevel, levelResult]);
+  }, [grid, availableShapes, clearingLines, score, comboCount, isGameOver, gameMode, currentLevel, levelResult, movesLeft]);
 
   // --- Interaction Handlers ---
   const handleSelectShape = (index: number) => {
@@ -476,46 +606,52 @@ const App: React.FC = () => {
   const handleUndo = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (history.length === 0 || clearingLines || showResetConfirm || levelResult) return;
-    if (undoLeft <= 0) return;
+    if (inventory.undos <= 0) return;
 
     const previousState = history[history.length - 1];
-    setRedoStack([...redoStack, { grid, score, availableShapes, isGameOver, comboCount }]);
+    setRedoStack([...redoStack, { grid, score, availableShapes, isGameOver, comboCount, movesLeft }]);
     setGrid(previousState.grid);
     setScore(previousState.score);
     setAvailableShapes(previousState.availableShapes);
     setIsGameOver(previousState.isGameOver);
     setIsNewHighScore(false);
     setComboCount(previousState.comboCount);
+    setMovesLeft(previousState.movesLeft);
+
     setHistory(history.slice(0, -1));
     setSelectedShapeIdx(null);
     setHint(null);
-    setUndoLeft(prev => prev - 1);
+    updateInventory('undos', -1);
   };
 
   const handleRedo = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (redoStack.length === 0 || clearingLines || showResetConfirm || isGameOver || levelResult) return;
-    if (redoLeft <= 0) return;
+    if (inventory.undos <= 0) return; // Using undo cost for redo is optional, but let's keep it simple or free? Let's make Redo free for now or cost 'redo'?
+    // Actually, redo usually is part of the undo feature. Let's make Redo consume nothing or an Undo token? 
+    // For simplicity, let's make Redo Free since you already paid for Undo.
+    
     const nextState = redoStack[redoStack.length - 1];
-    setHistory([...history, { grid, score, availableShapes, isGameOver, comboCount }]);
+    setHistory([...history, { grid, score, availableShapes, isGameOver, comboCount, movesLeft }]);
     setGrid(nextState.grid);
     setScore(nextState.score);
     setAvailableShapes(nextState.availableShapes);
     setIsGameOver(nextState.isGameOver);
     setComboCount(nextState.comboCount);
+    setMovesLeft(nextState.movesLeft);
+    
     setRedoStack(redoStack.slice(0, -1));
     setSelectedShapeIdx(null);
     setHint(null);
-    setRedoLeft(prev => prev - 1);
   };
 
   const handleRefresh = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGameOver || showResetConfirm || clearingLines || levelResult) return;
-    if (refreshLeft <= 0) return;
+    if (inventory.refreshes <= 0) return;
     playShuffleSound();
     generateNewShapes();
-    setRefreshLeft(prev => prev - 1);
+    updateInventory('refreshes', -1);
     setSelectedShapeIdx(null);
     setHint(null);
   };
@@ -523,60 +659,114 @@ const App: React.FC = () => {
   const handleHint = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGameOver || availableShapes.length === 0 || showResetConfirm || clearingLines || levelResult) return;
-    if (hintLeft <= 0) return;
+    if (inventory.hints <= 0) return;
     const bestMove = findBestMove(grid, availableShapes);
     if (bestMove) {
       setHint(bestMove);
-      setHintLeft(prev => prev - 1);
+      updateInventory('hints', -1);
     }
   };
 
   // --- View Rendering ---
 
-  const renderHome = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8 p-4 animate-in fade-in duration-500 relative">
-      <div className="text-center space-y-2">
-        <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">
-          BlockFit
-        </h1>
-        <p className="text-slate-400 text-sm tracking-[0.3em] uppercase font-semibold">
-          10x10 Puzzle
-        </p>
+  const renderHome = () => {
+    const today = new Date().toDateString();
+    const canCheckIn = lastCheckIn !== today;
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-4 animate-in fade-in duration-500 relative">
+        <div className="text-center space-y-2 mb-4">
+          <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+            BlockFit
+          </h1>
+          <p className="text-slate-400 text-sm tracking-[0.3em] uppercase font-semibold">
+            10x10 Puzzle
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-4 w-full max-w-xs">
+          {/* Swapped Order: Adventure First */}
+          <button 
+            onClick={() => setView('chapter-select')}
+            className="group relative flex items-center justify-center gap-3 w-full py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-purple-500/25 transition-all hover:scale-105 active:scale-95"
+          >
+            <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <MapIcon fill="currentColor" size={24} />
+            ADVENTURE MODE
+          </button>
+
+          <button 
+            onClick={() => startNewGame('infinite')}
+            className="group relative flex items-center justify-center gap-3 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
+          >
+            <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Play fill="currentColor" size={24} />
+            INFINITE MODE
+          </button>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <button 
+              onClick={() => setView('leaderboard')}
+              className="group flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-sm border border-slate-700 transition-all hover:scale-105 active:scale-95"
+            >
+              <History size={18} className="text-yellow-500" />
+              Records
+            </button>
+            <button 
+              onClick={() => setView('souvenirs')}
+              className="group flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-sm border border-slate-700 transition-all hover:scale-105 active:scale-95"
+            >
+              <Package size={18} className="text-pink-500" />
+              Souvenirs
+            </button>
+          </div>
+          
+          <button 
+            onClick={handleDailyCheckIn}
+            disabled={!canCheckIn}
+            className={`
+              relative group flex items-center justify-center gap-3 w-full py-3 rounded-xl font-bold text-sm border transition-all hover:scale-105 active:scale-95
+              ${canCheckIn 
+                ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-green-500 shadow-lg shadow-green-500/20' 
+                : 'bg-slate-900 text-slate-500 border-slate-800 cursor-default opacity-80'}
+            `}
+          >
+            <Calendar size={18} />
+            {canCheckIn ? 'Daily Check-in' : 'Checked In'}
+            {canCheckIn && (
+               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
+            )}
+          </button>
+
+        </div>
+
+        <div className="absolute bottom-4 text-slate-500 text-[10px] font-mono opacity-60">
+          Author: Vertex Wei
+        </div>
+
+        {/* Daily Reward Modal */}
+        {showDailyReward && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
+             <div className="bg-slate-900 border border-slate-700 p-8 rounded-2xl flex flex-col items-center gap-4 max-w-xs text-center shadow-2xl animate-in zoom-in-95">
+                <Gift size={48} className="text-green-500 animate-bounce" />
+                <h2 className="text-2xl font-black text-white">Daily Rewards!</h2>
+                <div className="flex flex-col gap-2 bg-slate-800 w-full p-4 rounded-xl">
+                   {dailyRewardItems.map((item, i) => (
+                      <div key={i} className="font-bold text-yellow-400">{item}</div>
+                   ))}
+                </div>
+                <button 
+                  onClick={() => setShowDailyReward(false)}
+                  className="mt-4 px-8 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold"
+                >
+                  Collect
+                </button>
+             </div>
+          </div>
+        )}
       </div>
-
-      <div className="flex flex-col gap-4 w-full max-w-xs">
-        <button 
-          onClick={() => startNewGame('infinite')}
-          className="group relative flex items-center justify-center gap-3 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
-        >
-          <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-          <Play fill="currentColor" size={24} />
-          INFINITE MODE
-        </button>
-
-        <button 
-          onClick={() => setView('chapter-select')}
-          className="group relative flex items-center justify-center gap-3 w-full py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-purple-500/25 transition-all hover:scale-105 active:scale-95"
-        >
-          <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-          <MapIcon fill="currentColor" size={24} />
-          ADVENTURE MODE
-        </button>
-
-        <button 
-          onClick={() => setView('leaderboard')}
-          className="group flex items-center justify-center gap-3 w-full py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-lg border border-slate-700 transition-all hover:scale-105 active:scale-95"
-        >
-          <History size={24} className="text-yellow-500" />
-          MY RECORDS
-        </button>
-      </div>
-
-      <div className="absolute bottom-4 text-slate-500 text-[10px] font-mono opacity-60">
-        Author: Vertex Wei
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderChapterSelect = () => (
     <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
@@ -589,22 +779,38 @@ const App: React.FC = () => {
       </div>
       
       <div className="flex flex-col gap-6 w-full">
-        {CHAPTERS.map(chapter => (
-          <button
-            key={chapter.id}
-            onClick={() => {
-              setCurrentChapterId(chapter.id);
-              setView('level-select');
-            }}
-            className="flex flex-col gap-2 p-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-xl"
-          >
-            <h3 className="text-xl font-black text-white">{chapter.title}</h3>
-            <p className="text-slate-400 text-sm">{chapter.description}</p>
-            <div className="mt-2 flex items-center gap-2 text-xs font-bold text-purple-400">
-              <span>15 LEVELS</span>
-            </div>
-          </button>
-        ))}
+        {CHAPTERS.map(chapter => {
+          const unlockedCount = chapter.levels.filter(l => (levelProgress[l.id] || 0) > 0).length;
+          const totalLevels = chapter.levels.length;
+          const isComplete = unlockedCount === totalLevels;
+
+          return (
+            <button
+              key={chapter.id}
+              onClick={() => {
+                setCurrentChapterId(chapter.id);
+                setView('level-select');
+              }}
+              className="relative flex flex-col gap-2 p-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-xl overflow-hidden"
+            >
+              <div className="flex justify-between items-start z-10">
+                 <div>
+                    <h3 className="text-xl font-black text-white">{chapter.title}</h3>
+                    <p className="text-slate-400 text-sm mt-1">{chapter.description}</p>
+                 </div>
+                 {isComplete && <CheckCircle2 className="text-green-500" size={24} />}
+              </div>
+              
+              <div className="mt-4 flex items-center justify-between text-xs font-bold z-10">
+                <span className="text-purple-400">15 LEVELS</span>
+                <span className="text-slate-500">{unlockedCount} / {totalLevels} Completed</span>
+              </div>
+              
+              {/* Progress Bar Background */}
+              <div className="absolute bottom-0 left-0 h-1 bg-green-500/50" style={{ width: `${(unlockedCount/totalLevels)*100}%` }} />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -623,11 +829,12 @@ const App: React.FC = () => {
           <div className="w-10"></div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 w-full">
+        <div className="grid grid-cols-3 gap-4 w-full pb-8">
           {chapter.levels.map((level, i) => {
             const crowns = levelProgress[level.id] || 0;
             // First level always unlocked. Others unlocked if previous has > 0 crowns.
             const isUnlocked = i === 0 || (levelProgress[chapter.levels[i-1].id] || 0) > 0;
+            const isRewardLevel = (i + 1) % 5 === 0;
             
             return (
               <button
@@ -635,12 +842,19 @@ const App: React.FC = () => {
                 disabled={!isUnlocked}
                 onClick={() => startNewGame('level', level)}
                 className={`
-                  relative aspect-square flex flex-col items-center justify-center rounded-xl border-2 transition-all
+                  relative aspect-square flex flex-col items-center justify-center rounded-xl border-2 transition-all overflow-hidden
                   ${isUnlocked 
                     ? 'bg-slate-800 border-slate-600 hover:bg-slate-700 active:scale-95' 
                     : 'bg-slate-900 border-slate-800 opacity-50 cursor-not-allowed'}
                 `}
               >
+                {/* Reward Indicator */}
+                {isRewardLevel && (
+                   <div className="absolute top-0 right-0 p-1">
+                      <Gift size={12} className={crowns > 0 ? "text-slate-600" : "text-green-500 animate-pulse"} />
+                   </div>
+                )}
+
                 {!isUnlocked ? (
                   <Lock size={24} className="text-slate-600" />
                 ) : (
@@ -664,6 +878,41 @@ const App: React.FC = () => {
       </div>
     );
   };
+
+  const renderSouvenirs = () => (
+    <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
+      <div className="w-full flex items-center justify-between mb-8">
+        <button onClick={() => setView('home')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
+          <ArrowLeft size={24} />
+        </button>
+        <h2 className="text-2xl font-bold text-white">Collection</h2>
+        <div className="w-10"></div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 w-full overflow-y-auto pb-4 custom-scrollbar">
+         {SOUVENIRS.map(souvenir => {
+            const isUnlocked = unlockedSouvenirs.includes(souvenir.id);
+            const Icon = IconMap[souvenir.icon] || Box;
+
+            return (
+               <div key={souvenir.id} className={`flex flex-col items-center p-4 rounded-2xl border ${isUnlocked ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-800 opacity-60'}`}>
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isUnlocked ? 'bg-slate-950 shadow-inner' : 'bg-slate-950'}`}>
+                     {isUnlocked ? (
+                        <Icon size={32} color={souvenir.color} className="drop-shadow-lg" />
+                     ) : (
+                        <Lock size={24} className="text-slate-700" />
+                     )}
+                  </div>
+                  <h3 className="font-bold text-center text-sm mb-1">{isUnlocked ? souvenir.name : '???'}</h3>
+                  <p className="text-[10px] text-center text-slate-500 leading-tight">
+                     {isUnlocked ? souvenir.description : 'Unlock by completing chapters.'}
+                  </p>
+               </div>
+            );
+         })}
+      </div>
+    </div>
+  );
 
   const renderGame = () => {
     const historicalBest = leaderboard.length > 0 ? leaderboard[0].score : 0;
@@ -743,16 +992,16 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          {/* Right Side: Best Score (Infinite) OR Target (Level) */}
-          <div className="flex flex-col items-end justify-self-end bg-slate-900/50 p-2 pr-3 pl-4 rounded-xl border border-slate-800/50 backdrop-blur-sm">
+          {/* Right Side Info */}
+          <div className="flex flex-col items-end justify-self-end bg-slate-900/50 p-2 pr-3 pl-4 rounded-xl border border-slate-800/50 backdrop-blur-sm min-w-[80px]">
              {isLevelMode ? (
                <div className="flex flex-col items-end">
-                 <div className="flex items-center gap-1.5 text-yellow-500 mb-0.5">
-                    <Crown size={14} fill="currentColor" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">Goal</span>
+                 <div className="flex items-center gap-1.5 text-blue-400 mb-0.5">
+                    <RotateCw size={14} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">Moves</span>
                  </div>
-                 <span className="text-lg font-mono font-bold text-yellow-500">
-                    {target1.toLocaleString()}
+                 <span className={`text-lg font-mono font-bold ${movesLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
+                    {movesLeft}
                  </span>
                </div>
              ) : (
@@ -771,21 +1020,27 @@ const App: React.FC = () => {
 
         {/* Level Progress Bar */}
         {isLevelMode && (
-          <div className="w-full max-w-[85vw] mb-6 relative h-4 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div className="w-full max-w-[85vw] mb-6 relative h-5 bg-slate-800 rounded-full border border-slate-700 mt-2">
              <div 
-               className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+               className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
                style={{ width: `${progressPercent}%` }}
              />
              {/* Crown Markers */}
-             {[1/2, 1.5/2, 1].map((p, i) => (
-                <div 
-                  key={i} 
-                  className="absolute top-0 bottom-0 w-0.5 bg-white/20 flex flex-col items-center justify-center overflow-visible"
-                  style={{ left: `${p * 100}%` }}
-                >
-                  <Crown size={10} className={`absolute -top-1 ${score >= [target1, target2, target3][i] ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'}`} />
-                </div>
-             ))}
+             {[1/2, 1.5/2, 1].map((p, i) => {
+                const targetVal = [target1, target2, target3][i];
+                return (
+                  <div 
+                    key={i} 
+                    className="absolute top-0 bottom-0 w-0.5 bg-white/20 flex flex-col items-center justify-center overflow-visible"
+                    style={{ left: `${p * 100}%` }}
+                  >
+                    <div className="absolute -top-6 flex flex-col items-center">
+                       <Crown size={12} className={`mb-0.5 ${score >= targetVal ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'}`} />
+                       <span className="text-[8px] font-mono text-slate-500 bg-slate-900/80 px-1 rounded">{targetVal}</span>
+                    </div>
+                  </div>
+                );
+             })}
           </div>
         )}
   
@@ -849,8 +1104,8 @@ const App: React.FC = () => {
   
           {/* Level Complete Overlay */}
           {levelResult && levelResult.success && (
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300">
-               <div className="flex gap-2 mb-6 animate-pulse">
+            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
+               <div className="flex gap-2 mb-4 animate-pulse">
                   {[1, 2, 3].map(i => (
                     <Crown 
                       key={i} 
@@ -860,9 +1115,24 @@ const App: React.FC = () => {
                   ))}
                </div>
                <h2 className="text-3xl font-black text-white mb-2">LEVEL CLEARED!</h2>
-               <div className="text-lg text-slate-300 mb-8 font-mono">Score: {score.toLocaleString()}</div>
+               <div className="text-lg text-slate-300 mb-2 font-mono">Score: {score.toLocaleString()}</div>
+               {movesLeft > 0 && <div className="text-xs text-blue-400 mb-6">+{(movesLeft * 100).toLocaleString()} Move Bonus!</div>}
+
+               {/* Rewards Display */}
+               {levelResult.rewards && (
+                  <div className="mb-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700 w-full">
+                     <div className="text-xs font-bold uppercase text-slate-400 mb-2">Rewards Claimed</div>
+                     <div className="flex flex-col gap-1">
+                        {levelResult.rewards.map((r, i) => (
+                           <div key={i} className="text-green-400 font-bold flex items-center justify-center gap-2">
+                              <Gift size={14} /> {r}
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+               )}
                
-               <div className="flex flex-col gap-3 w-3/4">
+               <div className="flex flex-col gap-3 w-full">
                  <button 
                    onClick={() => setView('level-select')}
                    className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95"
@@ -883,7 +1153,7 @@ const App: React.FC = () => {
 
           {/* Game Over / Fail Overlay */}
           {isGameOver && !levelResult && (
-            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300">
+            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
               {isNewHighScore ? (
                 <div className="flex flex-col items-center animate-bounce mb-2">
                   <Crown size={48} className="text-yellow-400 fill-yellow-400/20" />
@@ -894,25 +1164,31 @@ const App: React.FC = () => {
               )}
               
               <h2 className="text-3xl font-black text-white mb-2">
-                {isLevelMode ? 'LEVEL FAILED' : 'GAME OVER'}
+                {isLevelMode ? (movesLeft <= 0 ? 'OUT OF MOVES' : 'LEVEL FAILED') : 'GAME OVER'}
               </h2>
               
               <div className={`
-                px-6 py-3 rounded-xl border mb-8 flex flex-col items-center
+                px-6 py-3 rounded-xl border mb-6 flex flex-col items-center
                 ${isNewHighScore ? 'bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-slate-800/50 border-slate-700'}
               `}>
                 <span className="text-slate-400 text-xs uppercase font-bold tracking-wider">Final Score</span>
                 <span className={`text-3xl font-mono ${isNewHighScore ? 'text-yellow-400' : 'text-white'}`}>{score.toLocaleString()}</span>
               </div>
+
+              {isLevelMode && (
+                 <div className="text-slate-400 text-xs mb-6 max-w-xs">
+                    Goal: {currentLevel?.targetScore.toLocaleString()} pts for 1 Crown
+                 </div>
+              )}
               
-              <div className="flex flex-col gap-3 w-3/4">
+              <div className="flex flex-col gap-3 w-full">
                 <button 
                   onClick={handleUndo}
-                  disabled={history.length === 0 || undoLeft <= 0}
+                  disabled={history.length === 0 || inventory.undos <= 0}
                   className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                 >
                   <RotateCcw size={18} />
-                  Undo Last Move {undoLeft > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{undoLeft}</span>}
+                  Undo Last Move {inventory.undos > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{inventory.undos}</span>}
                 </button>
                 <button 
                   onClick={() => startNewGame(gameMode, currentLevel)}
@@ -966,38 +1242,38 @@ const App: React.FC = () => {
              <div className="flex gap-4">
                <button 
                  onClick={handleUndo} 
-                 disabled={history.length === 0 || !!clearingLines || showResetConfirm || undoLeft <= 0 || !!levelResult}
+                 disabled={history.length === 0 || !!clearingLines || showResetConfirm || inventory.undos <= 0 || !!levelResult}
                  className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
                >
                  <RotateCcw size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{undoLeft}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{inventory.undos}</span>
                </button>
                <button 
                  onClick={handleRedo} 
-                 disabled={redoStack.length === 0 || !!clearingLines || showResetConfirm || isGameOver || redoLeft <= 0 || !!levelResult}
+                 disabled={redoStack.length === 0 || !!clearingLines || showResetConfirm || isGameOver || inventory.undos <= 0 || !!levelResult}
                  className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
                >
                  <RotateCw size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{redoLeft}</span>
+                 {/* Redo shares Undo cost/pool or free? Let's hide badge or make it clear. */}
                </button>
                <button 
                  onClick={handleRefresh} 
-                 disabled={!!clearingLines || showResetConfirm || isGameOver || refreshLeft <= 0 || !!levelResult}
+                 disabled={!!clearingLines || showResetConfirm || isGameOver || inventory.refreshes <= 0 || !!levelResult}
                  className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
                >
                  <Shuffle size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{refreshLeft}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{inventory.refreshes}</span>
                </button>
              </div>
   
              <button 
                 onClick={handleHint}
-                disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || hintLeft <= 0 || !!levelResult}
+                disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || inventory.hints <= 0 || !!levelResult}
                 className="relative flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95"
               >
                 <Lightbulb size={18} className={hint ? "fill-yellow-500" : ""} />
                 <span className="font-bold text-sm">HINT</span>
-                <span className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">{hintLeft}</span>
+                <span className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">{inventory.hints}</span>
               </button>
           </div>
           
@@ -1078,6 +1354,7 @@ const App: React.FC = () => {
       {view === 'leaderboard' && renderLeaderboard()}
       {view === 'chapter-select' && renderChapterSelect()}
       {view === 'level-select' && renderLevelSelect()}
+      {view === 'souvenirs' && renderSouvenirs()}
       {view === 'game' && renderGame()}
     </div>
   );

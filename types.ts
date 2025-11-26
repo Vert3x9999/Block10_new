@@ -21,6 +21,7 @@ export interface GameState {
   availableShapes: ShapeObj[];
   isGameOver: boolean;
   comboCount: number;
+  movesLeft: number; // Snapshot for Undo
 }
 
 // --- Level Mode Types ---
@@ -29,6 +30,7 @@ export interface LevelConfig {
   id: string;
   label: string;
   targetScore: number; // Score needed for 1 Crown (Pass)
+  maxMoves: number;    // Turn limit
 }
 
 export interface ChapterData {
@@ -36,8 +38,25 @@ export interface ChapterData {
   title: string;
   description: string;
   levels: LevelConfig[];
+  souvenirId: string; // The ID of the souvenir unlocked by completing this chapter
 }
 
 export interface LevelProgress {
-  [levelId: string]: number; // number of crowns (0 = locked/unplayed if logic dictates, though 0 usually means played but failed or just unplayed. We'll use existence key for unlocked)
+  [levelId: string]: number; // number of crowns
+}
+
+// --- Inventory & Meta Types ---
+
+export interface Inventory {
+  hints: number;
+  undos: number;
+  refreshes: number;
+}
+
+export interface Souvenir {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // lucide icon name or simple string identifier
+  color: string;
 }

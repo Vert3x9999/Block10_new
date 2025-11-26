@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ShapeObj } from '../types';
 import ShapeRenderer from './ShapeRenderer';
@@ -12,17 +13,11 @@ interface ShapeTrayProps {
 
 const ShapeTray: React.FC<ShapeTrayProps> = ({ shapes, selectedIndex, draggingIndex, onSelectShape, onDragStart }) => {
   return (
-    <div className="flex justify-center items-center gap-4 w-full max-w-md h-32 mt-4 px-2 touch-none">
+    <div className="flex justify-center items-center gap-4 w-full max-w-md h-32 mt-4 px-2 touch-none select-none">
       {shapes.map((shape, idx) => {
         const isSelected = selectedIndex === idx;
         const isDragging = draggingIndex === idx;
         
-        // Calculate display size for tray
-        const rows = shape.matrix.length;
-        const cols = shape.matrix[0].length;
-        // const size = Math.max(rows, cols) * 20; 
-        
-        // We want the shape to fit in the box approx 80x80
         // Base cell size for tray rendering
         const trayCellSize = 18;
 
@@ -54,10 +49,10 @@ const ShapeTray: React.FC<ShapeTrayProps> = ({ shapes, selectedIndex, draggingIn
         );
       })}
       {shapes.length === 0 && (
-         <div className="text-slate-500 text-sm italic">Refilling...</div>
+         <div className="text-slate-500 text-sm italic animate-pulse">Refilling...</div>
       )}
     </div>
   );
 };
 
-export default ShapeTray;
+export default React.memo(ShapeTray);

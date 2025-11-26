@@ -1,5 +1,5 @@
 
-import { ShapeDefinition, ChapterData } from './types';
+import { ShapeDefinition, ChapterData, Souvenir } from './types';
 
 export const BOARD_SIZE = 10;
 
@@ -59,11 +59,13 @@ export const SHAPES = [...SHAPES_TIER_1, ...SHAPES_TIER_2, ...SHAPES_TIER_3];
 
 // --- Level Data ---
 
-const generateLevels = (chapterId: string, baseScore: number, increment: number): any[] => {
+const generateLevels = (chapterId: string, baseScore: number, increment: number, baseMoves: number, moveDecrement: number): any[] => {
   return Array.from({ length: 15 }, (_, i) => ({
     id: `${chapterId}-${i + 1}`,
     label: `${i + 1}`,
-    targetScore: baseScore + (i * increment)
+    targetScore: baseScore + (i * increment),
+    // Decrease moves slightly as levels get harder, but keep a floor
+    maxMoves: Math.max(15, baseMoves - Math.floor(i * moveDecrement)) 
   }));
 };
 
@@ -72,12 +74,89 @@ export const CHAPTERS: ChapterData[] = [
     id: 'ch1',
     title: 'Chapter 1: Genesis',
     description: 'The journey begins. Master the basics.',
-    levels: generateLevels('ch1', 1000, 500) // Level 1: 1000, Level 15: 8000
+    souvenirId: 's_genesis_cube',
+    levels: generateLevels('ch1', 1000, 300, 40, 0.5) // 40 moves to starts, gently decreasing
   },
   {
     id: 'ch2',
     title: 'Chapter 2: Challenge',
-    description: 'Higher stakes, higher rewards.',
-    levels: generateLevels('ch2', 10000, 1500) // Level 1: 10000, Level 15: 31000
+    description: 'Tight spaces, limited moves.',
+    souvenirId: 's_golden_compass',
+    levels: generateLevels('ch2', 5000, 1000, 30, 0.8) // Harder score, fewer moves (starts at 30)
+  }
+];
+
+// --- Souvenirs ---
+
+export const SOUVENIRS: Souvenir[] = [
+  {
+    id: 's_genesis_cube',
+    name: 'Genesis Cube',
+    description: 'A glowing cube representing your first steps into the grid.',
+    icon: 'box',
+    color: '#3b82f6' // blue
+  },
+  {
+    id: 's_golden_compass',
+    name: 'Golden Compass',
+    description: 'For navigating the treacherous challenges of Chapter 2.',
+    icon: 'compass',
+    color: '#eab308' // yellow
+  },
+  {
+    id: 's_placeholder_3',
+    name: 'Crystal Prism',
+    description: 'Coming soon in Chapter 3...',
+    icon: 'gem',
+    color: '#a855f7' // purple
+  },
+  {
+    id: 's_placeholder_4',
+    name: 'Ancient Tablet',
+    description: 'Coming soon...',
+    icon: 'scroll',
+    color: '#64748b'
+  },
+  {
+    id: 's_placeholder_5',
+    name: 'Star Fragment',
+    description: 'Coming soon...',
+    icon: 'star',
+    color: '#ec4899'
+  },
+  {
+    id: 's_placeholder_6',
+    name: 'Void Key',
+    description: 'Coming soon...',
+    icon: 'key',
+    color: '#0f172a'
+  },
+  {
+    id: 's_placeholder_7',
+    name: 'Time Hourglass',
+    description: 'Coming soon...',
+    icon: 'hourglass',
+    color: '#f97316'
+  },
+  {
+    id: 's_placeholder_8',
+    name: 'Victory Cup',
+    description: 'Coming soon...',
+    icon: 'trophy',
+    color: '#ef4444'
+  },
+  {
+    id: 's_placeholder_9',
+    name: 'Infinity Loop',
+    description: 'Coming soon...',
+    icon: 'infinity',
+    color: '#22c55e'
+  },
+  {
+    id: 's_placeholder_10',
+    name: 'Master Crown',
+    description: 'The ultimate symbol of mastery.',
+    icon: 'crown',
+    color: '#eab308'
   }
 ];
