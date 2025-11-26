@@ -34,10 +34,10 @@ const ShapeTray: React.FC<ShapeTrayProps> = ({ shapes, selectedIndex, draggingIn
             }}
             className={`
               relative flex items-center justify-center
-              w-20 h-20 rounded-xl transition-all duration-200 transform cursor-grab active:cursor-grabbing border
+              w-20 h-20 rounded-2xl transition-all duration-200 transform cursor-grab active:cursor-grabbing border
               ${isSelected 
-                  ? 'bg-white dark:bg-slate-700 ring-2 ring-blue-500 dark:ring-white shadow-lg scale-105 border-blue-200 dark:border-transparent' 
-                  : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700'}
+                  ? 'bg-white dark:bg-slate-700 ring-4 ring-blue-400/50 dark:ring-blue-500/50 shadow-xl scale-110 border-blue-200 dark:border-transparent z-10' 
+                  : 'bg-white/50 dark:bg-slate-800/60 hover:bg-white/80 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/50 shadow-sm'}
               ${isDragging ? 'opacity-0' : 'opacity-100'}
             `}
           >
