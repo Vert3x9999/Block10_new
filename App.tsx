@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress, Inventory, Souvenir } from './types';
 import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, WORLDS, SOUVENIRS, SHOP_PRICES } from './constants';
-import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove, rotateShapeMatrix } from './utils/gameLogic';
+import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove, rotateShapeMatrix, generateSmartShapes } from './utils/gameLogic';
 import { playPlaceSound, playClearSound, playGameOverSound, playShuffleSound, playLevelWinSound, playLevelFailSound } from './utils/soundEffects';
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
@@ -162,6 +162,7 @@ const App: React.FC = () => {
   const [hint, setHint] = useState<{shapeIdx: number, r: number, c: number} | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
   const [comboCount, setComboCount] = useState<number>(0);
+  const [streak, setStreak] = useState<number>(0);
 
   // Dragging Refs
   const dragInfoRef = useRef<DragInfo | null>(null);
@@ -273,21 +274,27 @@ const App: React.FC = () => {
 
   // --- Helpers ---
   const generateNewShapes = useCallback(() => {
-    const newShapes: ShapeObj[] = [];
-    const shapePool = SHAPES;
-
-    for (let i = 0; i < 3; i++) {
-      const randomShapeIdx = Math.floor(Math.random() * shapePool.length);
-      const randomColorIdx = Math.floor(Math.random() * SHAPE_COLORS.length);
-      newShapes.push({
-        id: Math.random().toString(36).substr(2, 9),
-        matrix: shapePool[randomShapeIdx],
-        color: SHAPE_COLORS[randomColorIdx],
-      });
+    if (gameMode === 'infinite') {
+      // Use Smart Logic for Infinite Mode
+      const newShapes = generateSmartShapes(score, grid);
+      setAvailableShapes(newShapes);
+    } else {
+      // Standard Random for Levels (to keep difficulty consistent with design)
+      const newShapes: ShapeObj[] = [];
+      const shapePool = SHAPES;
+      for (let i = 0; i < 3; i++) {
+        const randomShapeIdx = Math.floor(Math.random() * shapePool.length);
+        const randomColorIdx = Math.floor(Math.random() * SHAPE_COLORS.length);
+        newShapes.push({
+          id: Math.random().toString(36).substr(2, 9),
+          matrix: shapePool[randomShapeIdx],
+          color: SHAPE_COLORS[randomColorIdx],
+        });
+      }
+      setAvailableShapes(newShapes);
     }
-    setAvailableShapes(newShapes);
     setHint(null);
-  }, []);
+  }, [gameMode, score, grid]);
 
   const saveScoreToLeaderboard = (finalScore: number) => {
     if (finalScore === 0) return;
@@ -355,6 +362,7 @@ const App: React.FC = () => {
     setAvailableShapes([]); 
     setHistory([]);
     setComboCount(0);
+    setStreak(0);
     setShowRevivePrompt(false);
     dragInfoRef.current = null;
     setIsDragging(false);
@@ -506,7 +514,7 @@ const App: React.FC = () => {
 
     if (canPlace) {
       const currentState: GameState = {
-        grid, score, availableShapes, isGameOver, comboCount, movesLeft
+        grid, score, availableShapes, isGameOver, comboCount, streak, movesLeft
       };
       setHistory(prev => [...prev, currentState]);
       setHint(null);
@@ -528,13 +536,19 @@ const App: React.FC = () => {
       setTimeout(() => setPlacedAnimationCells([]), 400);
 
       const blocksCount = shapeObj.matrix.flat().reduce((acc, val) => acc + val, 0);
-      let newScore = score + (blocksCount * 50);
+      
+      // SCORE UPDATE: 100 points per block (Doubled from 50)
+      let newScore = score + (blocksCount * 100);
 
       const { rowIndices, colIndices } = findClearedLines(newGrid);
 
       if (rowIndices.length > 0 || colIndices.length > 0) {
         const newCombo = comboCount + 1;
+        // STREAK UPDATE: Increment streak on clear
+        const newStreak = streak + 1;
         setComboCount(newCombo);
+        setStreak(newStreak);
+        
         playClearSound(rowIndices.length + colIndices.length);
 
         setGrid(newGrid);
@@ -548,8 +562,13 @@ const App: React.FC = () => {
           setGrid(clearedGrid);
           
           const totalLines = rowIndices.length + colIndices.length;
-          const baseLineBonus = (totalLines * 1000) + (totalLines > 1 ? (totalLines - 1) * 500 : 0);
-          const multipliedBonus = baseLineBonus * newCombo;
+          // SCORE UPDATE: Base 2000 (Doubled) + Streak Bonus
+          // Streak Multiplier: Each streak level adds 10% bonus
+          const baseLineBonus = (totalLines * 2000) + (totalLines > 1 ? (totalLines - 1) * 1000 : 0);
+          const comboMultiplier = newCombo;
+          const streakMultiplier = 1 + (newStreak * 0.1); 
+          
+          const multipliedBonus = Math.floor(baseLineBonus * comboMultiplier * streakMultiplier);
           
           const finalNewScore = newScore + multipliedBonus;
           setScore(finalNewScore);
@@ -566,6 +585,9 @@ const App: React.FC = () => {
         }, 400);
       } else {
         setComboCount(0);
+        // STREAK UPDATE: Reset streak on no clear
+        setStreak(0);
+        
         playPlaceSound();
         setGrid(newGrid);
         setScore(newScore);
@@ -580,7 +602,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [grid, availableShapes, clearingLines, score, comboCount, isGameOver, gameMode, currentLevel, levelResult, movesLeft, showRevivePrompt]);
+  }, [grid, availableShapes, clearingLines, score, comboCount, streak, isGameOver, gameMode, currentLevel, levelResult, movesLeft, showRevivePrompt]);
 
   // --- Interaction Handlers ---
   const handleSelectShape = (index: number) => {
@@ -756,6 +778,7 @@ const App: React.FC = () => {
     setIsGameOver(previousState.isGameOver);
     setIsNewHighScore(false);
     setComboCount(previousState.comboCount);
+    setStreak(previousState.streak);
     setMovesLeft(previousState.movesLeft);
 
     setHistory(history.slice(0, -1));
@@ -1462,8 +1485,15 @@ const App: React.FC = () => {
                   {score.toLocaleString()}
                 </span>
                 {comboCount > 1 && (
-                  <div className="absolute -right-8 -top-4 rotate-12 flex items-center justify-center bg-yellow-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg ring-2 ring-white/20">
-                      x{comboCount}
+                  <div className="absolute -right-12 -top-6 flex flex-col items-start rotate-12">
+                     <div className="bg-yellow-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg ring-2 ring-white/20 whitespace-nowrap">
+                        x{comboCount}
+                     </div>
+                     {streak > 1 && (
+                       <div className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-lg mt-1 whitespace-nowrap animate-pulse">
+                          Streak x{streak}
+                       </div>
+                     )}
                   </div>
                 )}
              </div>

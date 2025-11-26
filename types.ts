@@ -21,6 +21,7 @@ export interface GameState {
   availableShapes: ShapeObj[];
   isGameOver: boolean;
   comboCount: number;
+  streak: number; // Consecutive turns with clears
   movesLeft: number; // Snapshot for Undo
 }
 

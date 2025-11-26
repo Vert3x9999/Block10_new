@@ -1,5 +1,5 @@
 
-import { BOARD_SIZE } from '../constants';
+import { BOARD_SIZE, SHAPES_TIER_1, SHAPES_TIER_2, SHAPES_TIER_3, SHAPE_COLORS } from '../constants';
 import { GridType, ShapeDefinition, Position, ShapeObj } from '../types';
 
 export const createEmptyGrid = (): GridType => {
@@ -33,6 +33,18 @@ export const canPlaceShape = (
     }
   }
   return true;
+};
+
+// Helper to check if a shape can fit ANYWHERE on the grid
+export const canShapeFitAnywhere = (grid: GridType, shape: ShapeDefinition): boolean => {
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (canPlaceShape(grid, shape, { r, c })) {
+        return true;
+      }
+    }
+  }
+  return false;
 };
 
 // Place shape on grid, returning new grid
@@ -168,4 +180,74 @@ export const findBestMove = (grid: GridType, shapes: ShapeObj[]): { shapeIdx: nu
   });
 
   return bestMove;
+};
+
+// --- Smart Shape Generation for Infinite Mode ---
+
+export const generateSmartShapes = (currentScore: number, grid: GridType): ShapeObj[] => {
+  const newShapes: ShapeObj[] = [];
+  
+  // 1. Determine Difficulty Weights based on Score
+  let w1, w2, w3; // Probabilities for Tier 1, 2, 3
+  
+  if (currentScore < 2000) {
+    w1 = 0.7; w2 = 0.3; w3 = 0.0;
+  } else if (currentScore < 10000) {
+    w1 = 0.4; w2 = 0.4; w3 = 0.2;
+  } else {
+    // Cap max difficulty at 30% Tier 3 to prevent "impossible hands"
+    w1 = 0.3; w2 = 0.4; w3 = 0.3;
+  }
+
+  const getWeightedTier = () => {
+    const r = Math.random();
+    if (r < w1) return SHAPES_TIER_1;
+    if (r < w1 + w2) return SHAPES_TIER_2;
+    return SHAPES_TIER_3;
+  };
+
+  const createShape = (matrix: ShapeDefinition): ShapeObj => ({
+    id: Math.random().toString(36).substr(2, 9),
+    matrix,
+    color: SHAPE_COLORS[Math.floor(Math.random() * SHAPE_COLORS.length)],
+  });
+
+  // 2. Generate Initial 3 Shapes
+  // Always ensure at least ONE Tier 1 shape is present for safety
+  newShapes.push(createShape(SHAPES_TIER_1[Math.floor(Math.random() * SHAPES_TIER_1.length)]));
+  
+  // Generate remaining 2 based on weights
+  for (let i = 0; i < 2; i++) {
+    const tier = getWeightedTier();
+    newShapes.push(createShape(tier[Math.floor(Math.random() * tier.length)]));
+  }
+
+  // Shuffle the guaranteed T1 shape position
+  for (let i = newShapes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newShapes[i], newShapes[j]] = [newShapes[j], newShapes[i]];
+  }
+
+  // 3. Safety Check: Impossible Hand Prevention
+  // Ensure at least one shape can theoretically fit on the board
+  // If the board is not full, we shouldn't give 3 unplayable shapes.
+  
+  // First, check if board is full (no empty cells)
+  let hasEmptyCell = false;
+  for(let r=0; r<BOARD_SIZE; r++) {
+     if(grid[r].some(c => c === null)) { hasEmptyCell = true; break; }
+  }
+
+  if (hasEmptyCell) {
+    // Check if any of the generated shapes fit
+    const anyFits = newShapes.some(s => canShapeFitAnywhere(grid, s.matrix));
+
+    if (!anyFits) {
+      // If none fit, replace the first one with a 1x1 block (ultimate safety)
+      // or a very small Tier 1 block
+      newShapes[0] = createShape([[1]]); // 1x1 block
+    }
+  }
+
+  return newShapes;
 };
