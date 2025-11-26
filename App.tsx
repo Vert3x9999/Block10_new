@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress, Inventory, Souvenir } from './types';
 import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, SOUVENIRS, SHOP_PRICES } from './constants';
@@ -1146,7 +1145,7 @@ const App: React.FC = () => {
            </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 w-full overflow-y-auto pb-4 custom-scrollbar">
+        <div className="grid grid-cols-2 gap-4 w-full overflow-y-auto pb-4 visible-scrollbar">
           {SOUVENIRS.map(souvenir => {
               const isUnlocked = unlockedSouvenirs.includes(souvenir.id);
               const Icon = IconMap[souvenir.icon] || Box;
@@ -1689,7 +1688,7 @@ const App: React.FC = () => {
             <p>No games played on this device yet.</p>
           </div>
         ) : (
-          <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-2 overflow-y-auto pr-1 visible-scrollbar">
             {leaderboard.map((record, i) => {
               const dateObj = new Date(record.timestamp);
               return (

@@ -1,4 +1,3 @@
-
 import { ShapeDefinition, ChapterData, Souvenir } from './types';
 
 export const BOARD_SIZE = 10;
@@ -59,15 +58,29 @@ export const SHAPES = [...SHAPES_TIER_1, ...SHAPES_TIER_2, ...SHAPES_TIER_3];
 
 // --- Level Data ---
 
-const generateLevels = (chapterId: string, baseScore: number, increment: number, baseMoves: number, moveDecrement: number): any[] => {
-  return Array.from({ length: 15 }, (_, i) => ({
-    id: `${chapterId}-${i + 1}`,
-    label: `${i + 1}`,
-    targetScore: baseScore + (i * increment),
-    // Decrease moves slightly as levels get harder, but keep a floor
-    maxMoves: Math.max(15, baseMoves - Math.floor(i * moveDecrement)),
-    coinReward: 15 + (i * 5) // Coins: 15, 20, 25...
-  }));
+const generateLevels = (
+  chapterId: string, 
+  baseScore: number, 
+  scoreIncrement: number, 
+  baseMoves: number, 
+  moveDecrement: number,
+  startGlobalIndex: number
+): any[] => {
+  return Array.from({ length: 15 }, (_, i) => {
+    const globalIndex = startGlobalIndex + i;
+    // Rule: Base 15 + 1 per level index + 10 extra for every 15 levels (chapter bonus)
+    const chapterBonus = Math.floor(globalIndex / 15) * 10;
+    const coinReward = 15 + globalIndex + chapterBonus;
+
+    return {
+      id: `${chapterId}-${i + 1}`,
+      label: `${i + 1}`,
+      targetScore: baseScore + (i * scoreIncrement),
+      // Decrease moves slightly as levels get harder, but keep a floor
+      maxMoves: Math.max(15, baseMoves - Math.floor(i * moveDecrement)),
+      coinReward: coinReward
+    };
+  });
 };
 
 export const CHAPTERS: ChapterData[] = [
@@ -76,14 +89,14 @@ export const CHAPTERS: ChapterData[] = [
     title: 'Chapter 1: Genesis',
     description: 'The journey begins. Master the basics.',
     souvenirId: 's_genesis_cube',
-    levels: generateLevels('ch1', 1000, 300, 40, 0.5) // 40 moves to starts, gently decreasing
+    levels: generateLevels('ch1', 1000, 300, 40, 0.5, 0) // Levels 1-15 (Global 0-14)
   },
   {
     id: 'ch2',
     title: 'Chapter 2: Challenge',
     description: 'Tight spaces, limited moves.',
     souvenirId: 's_golden_compass',
-    levels: generateLevels('ch2', 5000, 1000, 30, 0.8) // Harder score, fewer moves (starts at 30)
+    levels: generateLevels('ch2', 5000, 1000, 30, 0.8, 15) // Levels 16-30 (Global 15-29)
   }
 ];
 
