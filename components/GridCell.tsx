@@ -14,7 +14,8 @@ const GridCell: React.FC<GridCellProps> = ({ color, isGhost, isHint, isPlacement
   let opacity = 'opacity-100';
   let animation = '';
   let styleBackgroundColor: string | undefined = undefined;
-  let tailwindBgClass = 'bg-slate-800'; // Default empty cell color
+  // Default empty: Dark(slate-800), Light(slate-200)
+  let tailwindBgClass = 'bg-slate-200 dark:bg-slate-800'; 
 
   if (isPlacement) {
     animation = 'animate-place';
@@ -46,7 +47,8 @@ const GridCell: React.FC<GridCellProps> = ({ color, isGhost, isHint, isPlacement
   return (
     <div
       className={`
-        w-full h-full rounded-sm border border-slate-900/50 
+        w-full h-full rounded-sm 
+        border border-slate-300 dark:border-slate-900/50 
         transition-colors duration-150
         ${tailwindBgClass}
         ${opacity}

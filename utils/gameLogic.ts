@@ -188,13 +188,17 @@ export const generateSmartShapes = (currentScore: number, grid: GridType): Shape
   const newShapes: ShapeObj[] = [];
   
   // 1. Determine Difficulty Weights based on Score
+  // Since score is ONLY from line clears (2000 per line), we adjust thresholds.
   let w1, w2, w3; // Probabilities for Tier 1, 2, 3
   
   if (currentScore < 2000) {
-    w1 = 0.7; w2 = 0.3; w3 = 0.0;
-  } else if (currentScore < 10000) {
-    w1 = 0.4; w2 = 0.4; w3 = 0.2;
+    // Before first clear: Mostly easy
+    w1 = 0.8; w2 = 0.2; w3 = 0.0;
+  } else if (currentScore < 8000) {
+    // 1-4 Clears: Introduce some medium shapes
+    w1 = 0.5; w2 = 0.4; w3 = 0.1;
   } else {
+    // 5+ Clears: Normal mix, but capped difficulty
     // Cap max difficulty at 30% Tier 3 to prevent "impossible hands"
     w1 = 0.3; w2 = 0.4; w3 = 0.3;
   }

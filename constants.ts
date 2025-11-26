@@ -79,20 +79,23 @@ const generateLevels = (
     const spm = spmRange[0] + (spmRange[1] - spmRange[0]) * t;
 
     // Target Calculation
+    // Target = Moves * SPM
+    // Since we removed placement scores, SPM now reflects "Line Clears Per Move * 2000"
+    // E.g., SPM 100 means you need roughly 0.05 lines per move.
     let rawTarget = maxMoves * spm;
     
-    // 1. Round to nearest 10.
-    // This ensures base target ends in 0.
-    // Consequently:
-    // 1.5x (2 Crowns) will end in 0 or 5 (e.g., 100->150, 110->165).
-    // 2.0x (3 Crowns) will end in 0.
-    let targetScore = Math.ceil(rawTarget / 10) * 10;
+    // 1. Round to nearest 100 (Clean numbers)
+    // 1 Crown targets will look like 2000, 2500, etc.
+    let targetScore = Math.ceil(rawTarget / 100) * 100;
+
+    // Ensure minimum target is at least close to one line clear (2000) for later levels
+    // or appropriately small for early levels
+    if (targetScore < 1000) targetScore = 1000; // Minimum barrier
 
     // 2. Enforce Monotonic Increase
-    // Ensure the target score never drops below the previous level's target,
-    // even if move count drops. We add a small step (+10) to ensure progression.
+    // Ensure the target score never drops below the previous level's target
     if (i > 0 && targetScore <= prevTargetScore) {
-        targetScore = prevTargetScore + 10;
+        targetScore = prevTargetScore + 100;
     }
     
     prevTargetScore = targetScore;
@@ -115,11 +118,11 @@ export const CHAPTERS: ChapterData[] = [
     description: 'The journey begins. Relax and enjoy.',
     souvenirId: 's_genesis_cube',
     // Moves: 40 constant (Very Generous)
-    // SPM: 120 -> 150
-    // Base placement ~200/move. 
-    // 1 Crown (120) is guaranteed if you just play.
-    // 3 Crown (240) requires minimal line clearing.
-    levels: generateLevels('ch1', [40, 40], [120, 150], 10) 
+    // SPM: 50 -> 100
+    // Target Score: ~2000 to ~4000.
+    // 1 Crown: Clear 1-2 lines total.
+    // 3 Crown: Clear 2-4 lines total.
+    levels: generateLevels('ch1', [40, 40], [50, 100], 10) 
   },
   {
     id: 'ch2',
@@ -127,9 +130,11 @@ export const CHAPTERS: ChapterData[] = [
     description: 'Tight spaces, but plenty of time.',
     souvenirId: 's_golden_compass',
     // Moves: 40 -> 35
-    // SPM: 150 -> 220
-    // 3 Crown (300-440) requires consistent line clears.
-    levels: generateLevels('ch2', [40, 35], [150, 220], 25) 
+    // SPM: 150 -> 250
+    // Target Score: ~6000 to ~8800.
+    // 1 Crown: Clear 3-5 lines.
+    // 3 Crown: Clear 6-10 lines.
+    levels: generateLevels('ch2', [40, 35], [150, 250], 25) 
   },
   {
     id: 'ch3',
@@ -137,9 +142,11 @@ export const CHAPTERS: ChapterData[] = [
     description: 'Rise above. A smooth step up.',
     souvenirId: 's_crystal_prism',
     // Moves: 35 -> 30
-    // SPM: 220 -> 320
-    // 3 Crown (440-640) requires good combo usage.
-    levels: generateLevels('ch3', [35, 30], [220, 320], 40) 
+    // SPM: 300 -> 500
+    // Target Score: ~10500 to ~15000.
+    // 1 Crown: Clear 5-8 lines.
+    // 3 Crown: Clear 10-16 lines (Requires combos).
+    levels: generateLevels('ch3', [35, 30], [300, 500], 40) 
   }
 ];
 
