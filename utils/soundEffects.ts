@@ -97,3 +97,23 @@ export const playShuffleSound = () => {
   playTone(250, 'sine', 0.1, 0.05, 0.1);
   playTone(300, 'sine', 0.15, 0.1, 0.1);
 };
+
+export const playLevelWinSound = () => {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+
+  // Victory fanfare (Major triad ascending)
+  playTone(523.25, 'square', 0.2, 0, 0.1); // C5
+  playTone(659.25, 'square', 0.2, 0.15, 0.1); // E5
+  playTone(783.99, 'square', 0.4, 0.3, 0.1); // G5
+  playTone(1046.50, 'square', 0.6, 0.45, 0.1); // C6
+};
+
+export const playLevelFailSound = () => {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+  
+  // Sad wobble
+  playTone(400, 'sawtooth', 0.3, 0, 0.1);
+  playTone(380, 'sawtooth', 0.4, 0.2, 0.1);
+};

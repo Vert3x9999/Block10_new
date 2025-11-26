@@ -22,3 +22,22 @@ export interface GameState {
   isGameOver: boolean;
   comboCount: number;
 }
+
+// --- Level Mode Types ---
+
+export interface LevelConfig {
+  id: string;
+  label: string;
+  targetScore: number; // Score needed for 1 Crown (Pass)
+}
+
+export interface ChapterData {
+  id: string;
+  title: string;
+  description: string;
+  levels: LevelConfig[];
+}
+
+export interface LevelProgress {
+  [levelId: string]: number; // number of crowns (0 = locked/unplayed if logic dictates, though 0 usually means played but failed or just unplayed. We'll use existence key for unlocked)
+}

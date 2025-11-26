@@ -1,4 +1,5 @@
-import { ShapeDefinition } from './types';
+
+import { ShapeDefinition, ChapterData } from './types';
 
 export const BOARD_SIZE = 10;
 
@@ -31,7 +32,7 @@ export const SHAPES_TIER_1: ShapeDefinition[] = [
 export const SHAPES_TIER_2: ShapeDefinition[] = [
   [[1, 1, 1, 1]], // 4h
   [[1], [1], [1], [1]], // 4v
-  [[1, 1, 1], [1, 1, 1], [1, 1, 1]], // 3x3 square
+  [[1, 1, 1], [1, 1, 1]], // 3x3 square
   [[1, 0, 0], [1, 0, 0], [1, 1, 1]], // Big L
   [[0, 0, 1], [0, 0, 1], [1, 1, 1]],
   [[1, 1, 1], [1, 0, 0], [1, 0, 0]],
@@ -54,5 +55,29 @@ export const SHAPES_TIER_3: ShapeDefinition[] = [
   [[0, 1], [1, 1], [1, 0]],
 ];
 
-// Default export if needed, though we will use tiers in App
 export const SHAPES = [...SHAPES_TIER_1, ...SHAPES_TIER_2, ...SHAPES_TIER_3];
+
+// --- Level Data ---
+
+const generateLevels = (chapterId: string, baseScore: number, increment: number): any[] => {
+  return Array.from({ length: 15 }, (_, i) => ({
+    id: `${chapterId}-${i + 1}`,
+    label: `${i + 1}`,
+    targetScore: baseScore + (i * increment)
+  }));
+};
+
+export const CHAPTERS: ChapterData[] = [
+  {
+    id: 'ch1',
+    title: 'Chapter 1: Genesis',
+    description: 'The journey begins. Master the basics.',
+    levels: generateLevels('ch1', 1000, 500) // Level 1: 1000, Level 15: 8000
+  },
+  {
+    id: 'ch2',
+    title: 'Chapter 2: Challenge',
+    description: 'Higher stakes, higher rewards.',
+    levels: generateLevels('ch2', 10000, 1500) // Level 1: 10000, Level 15: 31000
+  }
+];
