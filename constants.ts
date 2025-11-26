@@ -65,7 +65,8 @@ const generateLevels = (chapterId: string, baseScore: number, increment: number,
     label: `${i + 1}`,
     targetScore: baseScore + (i * increment),
     // Decrease moves slightly as levels get harder, but keep a floor
-    maxMoves: Math.max(15, baseMoves - Math.floor(i * moveDecrement)) 
+    maxMoves: Math.max(15, baseMoves - Math.floor(i * moveDecrement)),
+    coinReward: 15 + (i * 5) // Coins: 15, 20, 25...
   }));
 };
 
@@ -85,6 +86,15 @@ export const CHAPTERS: ChapterData[] = [
     levels: generateLevels('ch2', 5000, 1000, 30, 0.8) // Harder score, fewer moves (starts at 30)
   }
 ];
+
+// --- Shop Data ---
+export const SHOP_PRICES = {
+  hints: 1000,
+  undos: 1000,
+  refreshes: 1000,
+  rotators: 1000,
+  revives: 10000
+};
 
 // --- Souvenirs ---
 

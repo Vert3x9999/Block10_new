@@ -31,6 +31,7 @@ export interface LevelConfig {
   label: string;
   targetScore: number; // Score needed for 1 Crown (Pass)
   maxMoves: number;    // Turn limit
+  coinReward: number;  // Coins awarded on completion
 }
 
 export interface ChapterData {
@@ -52,6 +53,8 @@ export interface Inventory {
   undos: number;
   refreshes: number;
   rotators: number; // New tool
+  coins: number;    // Currency
+  revives: number;  // Continue game item
 }
 
 export interface Souvenir {
