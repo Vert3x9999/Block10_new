@@ -818,14 +818,14 @@ const App: React.FC = () => {
         <div className="absolute top-4 left-4 flex gap-2">
            <button 
              onClick={() => setLang(l => l === 'en' ? 'zh' : 'en')}
-             className="bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 p-2 rounded-xl transition-all border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm backdrop-blur-md"
+             className="bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 p-2 rounded-xl transition-all border border-zinc-300 dark:border-zinc-700 shadow-sm backdrop-blur-md"
              title="Switch Language"
            >
              <Languages size={20} />
            </button>
            <button 
              onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-             className="bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-yellow-500 dark:text-yellow-400 p-2 rounded-xl transition-all border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm backdrop-blur-md"
+             className="bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 p-2 rounded-xl transition-all border border-zinc-300 dark:border-zinc-700 shadow-sm backdrop-blur-md"
              title="Toggle Theme"
            >
              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -836,7 +836,7 @@ const App: React.FC = () => {
         <button 
            onClick={handleClaimOnlineReward}
            disabled={totalOnlineReward <= 0}
-           className="absolute top-4 right-4 bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-800 dark:to-purple-900 border border-yellow-400/50 rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:grayscale"
+           className="absolute top-4 right-4 bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-900 dark:to-purple-950 border-2 border-yellow-400 rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(99,102,241,0.5)] hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:grayscale"
         >
            <div className="relative">
              <Timer size={24} className={totalOnlineReward > 0 ? "text-yellow-300 animate-pulse drop-shadow-sm" : "text-white/60"} />
@@ -864,10 +864,10 @@ const App: React.FC = () => {
         </button>
 
         <div className="text-center space-y-2 mb-4">
-          <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 drop-shadow-lg dark:drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]">
+          <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-purple-700 to-pink-700 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 drop-shadow-lg filter">
             Block10
           </h1>
-          <p className="dark:text-zinc-400 text-zinc-500 text-sm tracking-[0.3em] uppercase font-semibold">
+          <p className="dark:text-zinc-500 text-zinc-400 text-sm tracking-[0.3em] uppercase font-bold">
             10x10 Puzzle
           </p>
         </div>
@@ -875,7 +875,7 @@ const App: React.FC = () => {
         {/* Inventory Dashboard Button */}
         <button 
           onClick={() => setShowInventory(true)}
-          className="w-full max-w-xs bg-white/70 dark:bg-zinc-900/60 hover:bg-white dark:hover:bg-zinc-800 transition-all p-3 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-md grid grid-cols-3 gap-2 text-xs font-mono mb-2 group active:scale-95 shadow-sm hover:shadow-md"
+          className="w-full max-w-xs bg-zinc-50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 transition-all p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-md backdrop-blur-md grid grid-cols-3 gap-2 text-xs font-mono mb-2 group active:scale-95"
         >
             <div className="flex flex-col items-center gap-1 text-yellow-600 dark:text-yellow-500 group-hover:scale-110 transition-transform">
                 <Coins size={16} />
@@ -896,7 +896,7 @@ const App: React.FC = () => {
         <div className="flex flex-col gap-4 w-full max-w-xs">
           <button 
             onClick={() => setView('world-select')}
-            className="group relative flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-purple-500/25 transition-all hover:scale-105 active:scale-95"
+            className="group relative flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl font-bold text-lg shadow-[0_4px_0_rgb(88,28,135)] hover:shadow-[0_2px_0_rgb(88,28,135)] active:shadow-none active:translate-y-[4px] transition-all"
           >
             <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <MapIcon fill="currentColor" size={24} />
@@ -905,7 +905,7 @@ const App: React.FC = () => {
 
           <button 
             onClick={() => startNewGame('infinite')}
-            className="group relative flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
+            className="group relative flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-bold text-lg shadow-[0_4px_0_rgb(29,78,216)] hover:shadow-[0_2px_0_rgb(29,78,216)] active:shadow-none active:translate-y-[4px] transition-all"
           >
             <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <Play fill="currentColor" size={24} />
@@ -922,14 +922,14 @@ const App: React.FC = () => {
             </button>
             <button 
               onClick={() => setView('leaderboard')}
-              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-700 transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm"
+              className="group flex flex-col items-center justify-center gap-1 py-3 bg-zinc-50 dark:bg-zinc-800 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-600 border-b-4 shadow-sm active:border-b active:translate-y-[3px] transition-all"
             >
-              <History size={20} className="text-yellow-500 dark:text-yellow-500" />
+              <History size={20} className="text-yellow-600 dark:text-yellow-500" />
               {t('records')}
             </button>
             <button 
               onClick={() => setView('souvenirs')}
-              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-700 transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm"
+              className="group flex flex-col items-center justify-center gap-1 py-3 bg-zinc-50 dark:bg-zinc-800 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-600 border-b-4 shadow-sm active:border-b active:translate-y-[3px] transition-all"
             >
               <Package size={20} className="text-pink-500" />
               {t('souvenirs')}
@@ -939,10 +939,10 @@ const App: React.FC = () => {
           <button 
             onClick={() => setShowCalendar(true)}
             className={`
-              relative group flex items-center justify-center gap-3 w-full py-3 rounded-xl font-bold text-sm border transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm
+              relative group flex items-center justify-center gap-3 w-full py-3 rounded-xl font-bold text-sm border-b-4 transition-all active:border-b active:translate-y-[3px]
               ${!isCheckedIn 
-                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white border-transparent shadow-green-500/20' 
-                : 'bg-white/60 dark:bg-zinc-900/60 text-zinc-500 border-zinc-200 dark:border-zinc-800'}
+                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white border-green-800 shadow-green-500/20' 
+                : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700'}
             `}
           >
             <Calendar size={18} />
@@ -959,8 +959,8 @@ const App: React.FC = () => {
 
         {/* Inventory Modal */}
         {showInventory && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in">
+             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
                 <div className="flex justify-between w-full items-center mb-2">
                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Backpack className="text-blue-500" /> {t('myInventory')}</h2>
                    <button onClick={() => setShowInventory(false)}><X className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white" /></button>
@@ -975,25 +975,25 @@ const App: React.FC = () => {
                       { icon: Shuffle, color: 'text-green-600 dark:text-green-500', label: 'shuffle', val: inventory.refreshes },
                       { icon: RefreshCw, color: 'text-purple-600 dark:text-purple-500', label: 'rotate', val: inventory.rotators },
                     ].map((item, i) => (
-                      <div key={i} className="bg-zinc-50/80 dark:bg-zinc-800/80 p-3 rounded-2xl flex items-center justify-between border border-zinc-100 dark:border-zinc-700/50 shadow-sm">
+                      <div key={i} className="bg-zinc-100 dark:bg-zinc-800 p-3 rounded-2xl flex items-center justify-between border border-zinc-200 dark:border-zinc-700 shadow-sm">
                          <div className={`flex items-center gap-2 ${item.color} font-bold`}><item.icon size={20} /> {t(item.label)}</div>
-                         <span className="text-xl font-mono text-zinc-800 dark:text-zinc-200">{item.val}</span>
+                         <span className="text-xl font-mono text-zinc-900 dark:text-zinc-100">{item.val}</span>
                       </div>
                     ))}
                 </div>
 
-                <button onClick={() => setShowInventory(false)} className="mt-2 w-full py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 rounded-xl font-bold transition-colors">{t('close')}</button>
+                <button onClick={() => setShowInventory(false)} className="mt-2 w-full py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl font-bold transition-colors">{t('close')}</button>
              </div>
           </div>
         )}
 
         {/* Shop Modal */}
         {showShop && (
-           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-              <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
                  <div className="flex justify-between w-full items-center">
                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2"><ShoppingBag className="text-yellow-500" /> {t('shop')}</h2>
-                   <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 font-mono text-sm bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                   <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 font-mono text-sm bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700">
                       <Coins size={14} /> {inventory.coins}
                    </div>
                  </div>
@@ -1002,24 +1002,24 @@ const App: React.FC = () => {
                         <button 
                             key={item}
                             onClick={() => handleBuyItem(item as keyof typeof SHOP_PRICES)}
-                            className="bg-zinc-50/80 hover:bg-zinc-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-700 p-3 rounded-2xl flex flex-col items-center gap-2 border border-zinc-200 dark:border-zinc-700/50 active:scale-95 transition-all shadow-sm"
+                            className="bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 p-3 rounded-2xl flex flex-col items-center gap-2 border border-zinc-200 dark:border-zinc-700 active:scale-95 transition-all shadow-sm"
                         >
-                            <div className="capitalize text-sm font-bold text-zinc-800 dark:text-white">{t(item === 'refreshes' ? 'shuffle' : item === 'rotators' ? 'rotate' : item.slice(0, -1))}</div>
+                            <div className="capitalize text-sm font-bold text-zinc-900 dark:text-white">{t(item === 'refreshes' ? 'shuffle' : item === 'rotators' ? 'rotate' : item.slice(0, -1))}</div>
                             <div className="text-xs text-yellow-600 dark:text-yellow-500 flex items-center gap-1">
                                 <Coins size={12}/> {price}
                             </div>
                         </button>
                     ))}
                  </div>
-                 <button onClick={() => setShowShop(false)} className="mt-2 w-full py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 rounded-xl font-bold transition-colors">{t('close')}</button>
+                 <button onClick={() => setShowShop(false)} className="mt-2 w-full py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl font-bold transition-colors">{t('close')}</button>
               </div>
            </div>
         )}
 
         {/* Calendar Modal */}
         {showCalendar && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col items-center gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in">
+             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col items-center gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
                 <div className="flex justify-between w-full items-center">
                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Calendar className="text-green-500" /> {t('dailyRewards')}</h2>
                    <button onClick={() => setShowCalendar(false)}><X className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white" /></button>
@@ -1037,7 +1037,7 @@ const App: React.FC = () => {
                     return (
                       <div key={i} className={`
                         aspect-square rounded-lg flex flex-col items-center justify-center text-xs border relative transition-all
-                        ${isToday ? 'border-green-500 bg-green-500/10' : 'border-zinc-200 dark:border-zinc-700/50 bg-zinc-50/50 dark:bg-zinc-800/30'}
+                        ${isToday ? 'border-green-500 bg-green-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'}
                         ${isChecked ? 'opacity-50' : ''}
                       `}>
                          <span className={isToday ? "text-green-600 dark:text-green-400 font-bold" : "text-zinc-400 dark:text-zinc-600"}>{day}</span>
@@ -1067,11 +1067,11 @@ const App: React.FC = () => {
 
         {/* Daily Reward Collect Overlay */}
         {showDailyReward && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-8 rounded-3xl flex flex-col items-center gap-4 max-w-xs text-center shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in">
+             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-8 rounded-3xl flex flex-col items-center gap-4 max-w-xs text-center shadow-2xl animate-in zoom-in-95">
                 <Gift size={48} className="text-green-500 animate-bounce" />
                 <h2 className="text-2xl font-black text-zinc-900 dark:text-white">{t('dailyRewards')}!</h2>
-                <div className="flex flex-col gap-2 bg-zinc-100 dark:bg-zinc-800 w-full p-4 rounded-xl">
+                <div className="flex flex-col gap-2 bg-zinc-100 dark:bg-zinc-800 w-full p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
                    {dailyRewardItems.map((item, i) => (
                       <div key={i} className="font-bold text-yellow-600 dark:text-yellow-400">{item}</div>
                    ))}
@@ -1092,7 +1092,7 @@ const App: React.FC = () => {
   const renderWorldSelect = () => (
     <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
       <div className="w-full flex items-center justify-between mb-8">
-        <button onClick={() => setView('home')} className="p-2 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
+        <button onClick={() => setView('home')} className="p-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('selectWorld')}</h2>
@@ -1121,7 +1121,7 @@ const App: React.FC = () => {
                 setCurrentWorldId(world.id);
                 setView('chapter-select');
               }}
-              className="group relative flex flex-col gap-4 p-6 bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 rounded-3xl text-left transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl overflow-hidden backdrop-blur-sm"
+              className="group relative flex flex-col gap-4 p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-indigo-400 dark:hover:border-indigo-500 rounded-3xl text-left transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                  <Globe2 size={120} className="text-indigo-900 dark:text-white" />
@@ -1132,12 +1132,12 @@ const App: React.FC = () => {
                  <p className="text-indigo-600 dark:text-indigo-200 text-sm opacity-80">{t(world.id + '_desc')}</p>
               </div>
               
-              <div className="z-10 mt-2 bg-zinc-100 dark:bg-black/40 p-3 rounded-xl backdrop-blur-sm border border-zinc-200/50 dark:border-white/5 shadow-sm">
+              <div className="z-10 mt-2 bg-zinc-50 dark:bg-black/40 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
                  <div className="flex justify-between items-center text-xs font-bold mb-1">
                     <span className="text-yellow-600 dark:text-yellow-500 flex items-center gap-1"><Crown size={12}/> {t('crowns')}</span>
                     <span className="text-zinc-800 dark:text-white">{totalCrowns} / {maxCrowns}</span>
                  </div>
-                 <div className="h-2 bg-zinc-200 dark:bg-zinc-700/50 rounded-full overflow-hidden">
+                 <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div className="h-full bg-yellow-500 transition-all duration-1000" style={{ width: `${progress}%` }} />
                  </div>
               </div>
@@ -1155,7 +1155,7 @@ const App: React.FC = () => {
     return (
       <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
         <div className="w-full flex items-center justify-between mb-4">
-          <button onClick={() => setView('world-select')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
+          <button onClick={() => setView('world-select')} className="p-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm">
             <ArrowLeft size={24} />
           </button>
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white truncate max-w-[200px]">{world ? t(world.id) : t('selectChapter')}</h2>
@@ -1175,7 +1175,7 @@ const App: React.FC = () => {
                   setCurrentChapterId(chapter.id);
                   setView('level-select');
                 }}
-                className="relative flex flex-col gap-2 p-6 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/50 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-xl overflow-hidden backdrop-blur-sm"
+                className="relative flex flex-col gap-2 p-6 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-xl overflow-hidden"
               >
                 <div className="flex justify-between items-start z-10">
                   <div>
@@ -1205,7 +1205,7 @@ const App: React.FC = () => {
     return (
       <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
         <div className="w-full flex items-center justify-between mb-8">
-          <button onClick={() => setView('chapter-select')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
+          <button onClick={() => setView('chapter-select')} className="p-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm">
             <ArrowLeft size={24} />
           </button>
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{t(chapter.id)}</h2>
@@ -1224,10 +1224,10 @@ const App: React.FC = () => {
                 disabled={!isUnlocked}
                 onClick={() => startNewGame('level', level)}
                 className={`
-                  relative aspect-square flex flex-col items-center justify-center rounded-2xl border-2 transition-all overflow-hidden shadow-sm hover:shadow-md
+                  relative aspect-square flex flex-col items-center justify-center rounded-2xl border transition-all overflow-hidden shadow-sm hover:shadow-md
                   ${isUnlocked 
-                    ? 'bg-white/80 dark:bg-zinc-800/60 border-zinc-200/50 dark:border-zinc-700/50 hover:bg-white dark:hover:bg-zinc-700 active:scale-95 backdrop-blur-sm' 
-                    : 'bg-zinc-100/50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-50 cursor-not-allowed'}
+                    ? 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 active:scale-95' 
+                    : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 opacity-50 cursor-not-allowed'}
                 `}
               >
                 {isRewardLevel && (
@@ -1269,14 +1269,14 @@ const App: React.FC = () => {
   const renderLeaderboard = () => (
     <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
       <div className="w-full flex items-center justify-between mb-8">
-        <button onClick={() => setView('home')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
+        <button onClick={() => setView('home')} className="p-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('records')}</h2>
         <div className="w-10"></div>
       </div>
 
-      <div className="w-full bg-white/70 dark:bg-zinc-900/50 rounded-xl p-6 mb-4 border border-zinc-200 dark:border-zinc-800 shadow-sm backdrop-blur-sm flex flex-col gap-4 h-[70vh]">
+      <div className="w-full bg-white dark:bg-zinc-900 rounded-xl p-6 mb-4 border border-zinc-200 dark:border-zinc-800 shadow-md flex flex-col gap-4 h-[70vh]">
           <div className="flex justify-between items-center mb-2">
              <h3 className="font-bold text-zinc-700 dark:text-zinc-300">{t('myBestScores')}</h3>
              {leaderboard.length > 0 && (
@@ -1295,7 +1295,7 @@ const App: React.FC = () => {
              ) : (
                 <div className="flex flex-col gap-2">
                    {leaderboard.map((record, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
+                      <div key={i} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
                          <div className="flex items-center gap-3">
                             <span className={`
                                w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
@@ -1327,19 +1327,19 @@ const App: React.FC = () => {
       <div className={`flex flex-col items-center h-screen overflow-hidden p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
         <div className="w-full flex-none">
             <div className="w-full flex items-center justify-between mb-6">
-                <button onClick={() => setView('home')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
+                <button onClick={() => setView('home')} className="p-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm">
                     <ArrowLeft size={24} />
                 </button>
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('collection')}</h2>
                 <div className="w-10"></div>
             </div>
 
-            <div className="w-full bg-white/70 dark:bg-zinc-900/50 rounded-xl p-4 mb-4 border border-zinc-200 dark:border-zinc-800 shadow-sm backdrop-blur-sm">
+            <div className="w-full bg-white dark:bg-zinc-900 rounded-xl p-4 mb-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div className="flex justify-between text-xs font-bold mb-2">
                     <span className="text-zinc-500 dark:text-zinc-400">{t('totalProgress')}</span>
                     <span className="text-pink-500 dark:text-pink-400">{progress}%</span>
                 </div>
-                <div className="h-2 bg-zinc-200 dark:bg-zinc-700/50 rounded-full overflow-hidden">
+                <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div className="h-full bg-pink-500 transition-all duration-1000" style={{width: `${progress}%`}} />
                 </div>
             </div>
@@ -1358,8 +1358,8 @@ const App: React.FC = () => {
                             className={`
                                 relative flex flex-col items-center justify-center p-4 rounded-3xl border transition-all duration-300 group aspect-[4/5]
                                 ${isUnlocked 
-                                    ? 'bg-white/80 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700/50 hover:bg-white dark:hover:bg-zinc-750 hover:border-zinc-300 dark:hover:border-zinc-600 shadow-md backdrop-blur-sm' 
-                                    : 'bg-zinc-100/50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-80 cursor-default'}
+                                    ? 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 shadow-md' 
+                                    : 'bg-zinc-100 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 opacity-60 cursor-default'}
                             `}
                         >
                             <div className={`
@@ -1367,16 +1367,16 @@ const App: React.FC = () => {
                                 ${isUnlocked ? 'bg-zinc-50 dark:bg-zinc-950 shadow-inner ring-1 ring-black/5 dark:ring-white/10' : 'bg-zinc-200 dark:bg-zinc-950'}
                             `}>
                                 {isUnlocked ? (
-                                    <Icon size={32} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+                                    <Icon size={32} color={souvenir.color} className="drop-shadow-md" />
                                 ) : (
                                     <div className="relative">
-                                        <Icon size={32} className="text-zinc-400 dark:text-zinc-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
+                                        <Icon size={32} className="text-zinc-400 dark:text-zinc-800 blur-[1px]" />
                                         <HelpCircle size={20} className="absolute inset-0 m-auto text-zinc-500 dark:text-zinc-700" />
                                     </div>
                                 )}
                             </div>
                             {isUnlocked && <div className="absolute top-3 right-3 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
-                            <div className={`mt-2 text-xs font-bold text-center px-1 line-clamp-2 ${isUnlocked ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-600'}`}>
+                            <div className={`mt-2 text-xs font-bold text-center px-1 line-clamp-2 ${isUnlocked ? 'text-zinc-900 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-600'}`}>
                                 {isUnlocked ? t(souvenir.id) : '???'}
                             </div>
                         </button>
@@ -1386,8 +1386,8 @@ const App: React.FC = () => {
         </div>
 
         {selectedSouvenir && (
-           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-              <div className="relative bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-600 p-8 rounded-3xl flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 mx-4 overflow-hidden backdrop-blur-xl">
+           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in">
+              <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-8 rounded-3xl flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 mx-4 overflow-hidden">
                  <div 
                    className="absolute -top-20 -left-20 w-40 h-40 rounded-full blur-[80px] opacity-30 pointer-events-none"
                    style={{ backgroundColor: unlockedSouvenirs.includes(selectedSouvenir.id) ? selectedSouvenir.color : '#000' }}
@@ -1401,13 +1401,13 @@ const App: React.FC = () => {
                     return (
                        <>
                           <div className={`
-                             w-32 h-32 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 shadow-2xl ring-4 ring-zinc-100 dark:ring-zinc-800
+                             w-32 h-32 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 shadow-xl ring-1 ring-zinc-200 dark:ring-zinc-800
                              ${!isUnlocked ? 'grayscale opacity-50' : ''}
                           `}>
                              <Icon 
                                size={64} 
                                color={isUnlocked ? selectedSouvenir.color : '#333'} 
-                               className={isUnlocked ? 'drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]' : ''} 
+                               className={isUnlocked ? 'drop-shadow-lg' : ''} 
                              />
                           </div>
                           <div className="text-center space-y-2 z-10">
@@ -1416,7 +1416,7 @@ const App: React.FC = () => {
                                 {isUnlocked ? t(selectedSouvenir.id + '_desc') : t('lockedDesc')}
                              </p>
                           </div>
-                          <div className="w-full pt-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-center">
+                          <div className="w-full pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-center">
                              {isUnlocked ? (
                                 <span className="text-green-600 dark:text-green-500 font-bold flex items-center gap-2 text-sm"><CheckCircle2 size={16}/> {t('acquired')}</span>
                              ) : (
@@ -1487,7 +1487,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 justify-self-start">
              <button 
                 onClick={() => setShowResetConfirm(true)}
-                className="p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors border border-zinc-200 dark:border-zinc-700 shadow-md backdrop-blur-sm"
+                className="p-3 bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors border border-zinc-200 dark:border-zinc-700 shadow-sm"
               >
                 <Home size={20} />
               </button>
@@ -1497,13 +1497,13 @@ const App: React.FC = () => {
              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-[0.2em] mb-1">
                {isLevelMode ? `${t('level')} ${currentLevel.label}` : t('score')}
              </span>
-             <div className="relative">
-                <span className="text-5xl font-mono font-black text-zinc-900 dark:text-white tracking-tighter drop-shadow-md leading-none">
+             <div className="relative px-6 py-2 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <span className="text-4xl font-mono font-black text-zinc-900 dark:text-white tracking-tighter leading-none">
                   {score.toLocaleString()}
                 </span>
                 {comboCount > 1 && (
-                  <div className="absolute -right-12 -top-6 flex flex-col items-start rotate-12">
-                     <div className="bg-yellow-500 text-zinc-950 text-xs font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg ring-2 ring-white/20 whitespace-nowrap">
+                  <div className="absolute -right-8 -top-4 flex flex-col items-start rotate-12 z-20">
+                     <div className="bg-yellow-500 text-zinc-950 text-xs font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg ring-2 ring-white dark:ring-zinc-900 whitespace-nowrap">
                         x{comboCount}
                      </div>
                      {streak > 1 && (
@@ -1516,24 +1516,24 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          <div className="flex flex-col items-end justify-self-end bg-white/60 dark:bg-zinc-900/50 p-2 pr-3 pl-4 rounded-xl border border-zinc-200 dark:border-zinc-800/50 backdrop-blur-md min-w-[80px] shadow-sm">
+          <div className="flex flex-col items-center justify-self-end bg-white dark:bg-zinc-900 p-2 pr-3 pl-3 rounded-xl border border-zinc-200 dark:border-zinc-800 min-w-[80px] shadow-sm">
              {isLevelMode ? (
-               <div className="flex flex-col items-end">
+               <div className="flex flex-col items-center">
                  <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 mb-0.5">
                     <RotateCw size={14} />
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{t('moves')}</span>
                  </div>
-                 <span className={`text-lg font-mono font-bold ${movesLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-blue-500 dark:text-blue-400'}`}>
+                 <span className={`text-lg font-mono font-bold ${movesLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-blue-600 dark:text-blue-400'}`}>
                     {movesLeft}
                  </span>
                </div>
              ) : (
                <>
                 <div className="flex items-center gap-1.5 text-yellow-600 dark:text-yellow-500 mb-0.5">
-                    <Crown size={14} fill="currentColor" className="drop-shadow-glow" />
+                    <Crown size={14} fill="currentColor" />
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{t('best')}</span>
                 </div>
-                <span className="text-xl font-mono font-bold leading-none bg-clip-text text-transparent bg-gradient-to-b from-yellow-500 to-amber-700 dark:from-yellow-300 dark:to-amber-500 drop-shadow-sm">
+                <span className="text-lg font-mono font-bold leading-none text-zinc-800 dark:text-zinc-200">
                   {currentBestScore.toLocaleString()}
                 </span>
                </>
@@ -1542,9 +1542,9 @@ const App: React.FC = () => {
         </div>
 
         {isLevelMode && (
-          <div className="w-full max-w-[85vw] mb-6 relative h-6 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-full border border-zinc-300 dark:border-zinc-700 mt-2 backdrop-blur-sm">
+          <div className="w-full max-w-[85vw] mb-6 relative h-6 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800 mt-2">
              <div 
-               className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]"
+               className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
                style={{ width: `${progressPercent}%` }}
              />
              {[1/2, 1.5/2, 1].map((p, i) => {
@@ -1552,12 +1552,12 @@ const App: React.FC = () => {
                 return (
                   <div 
                     key={i} 
-                    className="absolute top-0 bottom-0 w-0.5 bg-zinc-400/20 dark:bg-white/20 flex flex-col items-center justify-center overflow-visible"
+                    className="absolute top-0 bottom-0 w-0.5 bg-zinc-300 dark:bg-zinc-700 flex flex-col items-center justify-center overflow-visible"
                     style={{ left: `${p * 100}%` }}
                   >
                     <div className="absolute -top-7 flex flex-col items-center z-10">
-                       <Crown size={16} className={`mb-0.5 drop-shadow-md ${score >= targetVal ? 'text-yellow-500 fill-yellow-500' : 'text-zinc-400 dark:text-zinc-500'}`} />
-                       <span className="text-[9px] font-mono font-bold text-zinc-700 dark:text-white bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 shadow-sm">{targetVal}</span>
+                       <Crown size={16} className={`mb-0.5 drop-shadow-sm ${score >= targetVal ? 'text-yellow-500 fill-yellow-500' : 'text-zinc-300 dark:text-zinc-700'}`} />
+                       <span className="text-[9px] font-mono font-bold text-zinc-700 dark:text-white bg-white dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 shadow-sm">{targetVal}</span>
                     </div>
                   </div>
                 );
@@ -1567,7 +1567,7 @@ const App: React.FC = () => {
   
         <div 
           ref={gridRef}
-          className="relative bg-white/80 dark:bg-zinc-900/80 p-3 rounded-2xl shadow-2xl dark:shadow-black/50 ring-1 ring-zinc-200 dark:ring-zinc-800 touch-none mb-6 backdrop-blur-sm"
+          className="relative bg-white dark:bg-zinc-900 p-3 rounded-2xl shadow-xl dark:shadow-black ring-1 ring-zinc-200 dark:ring-zinc-800 touch-none mb-6"
           onClick={(e) => e.stopPropagation()}
         >
           <div 
@@ -1623,13 +1623,13 @@ const App: React.FC = () => {
           </div>
   
           {levelResult && levelResult.success && (
-            <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
+            <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
                <div className="flex gap-2 mb-4 animate-pulse">
                   {[1, 2, 3].map(i => (
                     <Crown 
                       key={i} 
                       size={40} 
-                      className={`${i <= levelResult.crowns ? 'text-yellow-500 fill-yellow-500 drop-shadow-glow' : 'text-zinc-300 dark:text-zinc-700'}`} 
+                      className={`${i <= levelResult.crowns ? 'text-yellow-500 fill-yellow-500 drop-shadow-md' : 'text-zinc-200 dark:text-zinc-800'}`} 
                     />
                   ))}
                </div>
@@ -1643,7 +1643,7 @@ const App: React.FC = () => {
                )}
 
                {levelResult.rewards && (
-                  <div className="mb-6 bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 w-full">
+                  <div className="mb-6 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 w-full">
                      <div className="text-xs font-bold uppercase text-zinc-500 dark:text-zinc-400 mb-2">{t('rewardsClaimed')}</div>
                      <div className="flex flex-col gap-1">
                         {levelResult.rewards.map((r, i) => (
@@ -1665,7 +1665,7 @@ const App: React.FC = () => {
                  </button>
                  <button 
                    onClick={() => startNewGame('level', currentLevel)}
-                   className="flex items-center justify-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-3 rounded-xl font-bold transition-all"
+                   className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-3 rounded-xl font-bold transition-all"
                  >
                    <RotateCw size={18} />
                    {t('replay')}
@@ -1675,7 +1675,7 @@ const App: React.FC = () => {
           )}
 
           {showRevivePrompt && (
-              <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-30 animate-in zoom-in-95 duration-300 p-6 text-center">
+              <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 flex flex-col items-center justify-center rounded-2xl z-30 animate-in zoom-in-95 duration-300 p-6 text-center">
                   <HeartPulse size={48} className="text-pink-500 animate-pulse mb-4" />
                   <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2">{t('outOfMoves')}!</h2>
                   <p className="text-zinc-600 dark:text-zinc-400 mb-6">{t('revivePrompt')}</p>
@@ -1699,11 +1699,11 @@ const App: React.FC = () => {
           )}
 
           {isGameOver && !levelResult && !showRevivePrompt && (
-            <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
+            <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
               {isNewHighScore ? (
                 <div className="flex flex-col items-center animate-bounce mb-2">
                   <Crown size={48} className="text-yellow-500 dark:text-yellow-400 fill-yellow-500/20 dark:fill-yellow-400/20" />
-                  <span className="text-yellow-500 dark:text-yellow-400 font-black tracking-widest text-lg drop-shadow-glow">{t('newBest')}!</span>
+                  <span className="text-yellow-500 dark:text-yellow-400 font-black tracking-widest text-lg drop-shadow-md">{t('newBest')}!</span>
                 </div>
               ) : (
                 <AlertCircle size={48} className="text-red-500 mb-4" />
@@ -1715,7 +1715,7 @@ const App: React.FC = () => {
               
               <div className={`
                 px-6 py-3 rounded-xl border mb-6 flex flex-col items-center
-                ${isNewHighScore ? 'bg-yellow-100 dark:bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'}
+                ${isNewHighScore ? 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-500/50 shadow-md' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'}
               `}>
                 <span className="text-zinc-500 dark:text-zinc-400 text-xs uppercase font-bold tracking-wider">{t('finalScore')}</span>
                 <span className={`text-3xl font-mono ${isNewHighScore ? 'text-yellow-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-white'}`}>{score.toLocaleString()}</span>
@@ -1754,7 +1754,7 @@ const App: React.FC = () => {
           )}
 
           {showResetConfirm && (
-             <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl z-30 p-6 text-center animate-in fade-in duration-200">
+             <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 flex flex-col items-center justify-center rounded-2xl z-30 p-6 text-center animate-in fade-in duration-200">
                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{t('quitGame')}?</h2>
                <p className="text-zinc-500 dark:text-zinc-400 mb-6 text-sm">{t('progressLost')}</p>
                <div className="flex flex-col gap-3 w-full">
@@ -1789,30 +1789,30 @@ const App: React.FC = () => {
                <button 
                  onClick={handleUndo} 
                  disabled={history.length === 0 || !!clearingLines || showResetConfirm || getCurrentInventory('undos') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-800 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-700/50 shadow-sm backdrop-blur-sm"
+                 className="relative group p-3 bg-white hover:bg-zinc-50 dark:bg-zinc-900 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-800 shadow-sm"
                >
                  <RotateCcw size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-zinc-100 dark:border-zinc-950">{getCurrentInventory('undos')}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-zinc-950">{getCurrentInventory('undos')}</span>
                </button>
                
                {/* Rotate */}
                <button 
                  onClick={handleRotate} 
                  disabled={selectedShapeIdx === null || !!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('rotators') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-800 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-700/50 shadow-sm backdrop-blur-sm"
+                 className="relative group p-3 bg-white hover:bg-zinc-50 dark:bg-zinc-900 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-800 shadow-sm"
                >
                  <RefreshCw size={20} className={selectedShapeIdx !== null ? "animate-spin-once" : ""} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-zinc-100 dark:border-zinc-950">{getCurrentInventory('rotators')}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-zinc-950">{getCurrentInventory('rotators')}</span>
                </button>
                
                {/* Refresh */}
                <button 
                  onClick={handleRefresh} 
                  disabled={!!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('refreshes') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-800 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-700/50 shadow-sm backdrop-blur-sm"
+                 className="relative group p-3 bg-white hover:bg-zinc-50 dark:bg-zinc-900 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-800 shadow-sm"
                >
                  <Shuffle size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-zinc-100 dark:border-zinc-950">{getCurrentInventory('refreshes')}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-zinc-950">{getCurrentInventory('refreshes')}</span>
                </button>
              </div>
   
@@ -1820,7 +1820,7 @@ const App: React.FC = () => {
              <button 
                 onClick={handleHint}
                 disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || !!levelResult || showRevivePrompt || getCurrentInventory('hints') <= 0}
-                className="relative flex items-center gap-2 px-4 py-2 bg-yellow-100/80 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95 shadow-sm backdrop-blur-sm"
+                className="relative flex items-center gap-2 px-4 py-2 bg-yellow-100/80 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95 shadow-sm"
               >
                 <Lightbulb size={18} className={hint ? "fill-yellow-600 dark:fill-yellow-500" : ""} />
                 <span className="font-bold text-sm">HINT</span>
@@ -1828,7 +1828,7 @@ const App: React.FC = () => {
               </button>
           </div>
           
-          <div className="bg-zinc-200/50 dark:bg-zinc-900/40 rounded-3xl border border-zinc-200 dark:border-zinc-800/50 pb-2 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 pb-2 shadow-lg dark:shadow-black">
             <ShapeTray 
               shapes={availableShapes} 
               selectedIndex={selectedShapeIdx} 
@@ -1861,7 +1861,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-500 ease-in-out bg-white dark:bg-black text-black dark:text-white`}>
+    <div className={`min-h-screen font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-500 ease-in-out bg-white dark:bg-black text-zinc-900 dark:text-zinc-100`}>
       {view === 'home' && renderHome()}
       {view === 'leaderboard' && renderLeaderboard()}
       {view === 'world-select' && renderWorldSelect()}
