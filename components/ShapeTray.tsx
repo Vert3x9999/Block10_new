@@ -23,7 +23,7 @@ const ShapeTray: React.FC<ShapeTrayProps> = ({ shapes, selectedIndex, draggingIn
 
         return (
           <div
-            key={shape.id}
+            key={`${shape.id}-${idx}`} // Use index in key to ensure re-render if matrix updates inplace or position shifts
             onPointerDown={(e) => {
               // Prevent default browser drag behavior
               e.preventDefault(); 

@@ -2,12 +2,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress, Inventory, Souvenir } from './types';
 import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, SOUVENIRS } from './constants';
-import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove } from './utils/gameLogic';
+import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove, rotateShapeMatrix } from './utils/gameLogic';
 import { playPlaceSound, playClearSound, playGameOverSound, playShuffleSound, playLevelWinSound, playLevelFailSound } from './utils/soundEffects';
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon, X, HelpCircle } from 'lucide-react';
 
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
@@ -68,9 +68,12 @@ const App: React.FC = () => {
   const [inventory, setInventory] = useState<Inventory>(() => {
     try {
       const saved = localStorage.getItem('blockfit-inventory');
-      return saved ? JSON.parse(saved) : { hints: 5, undos: 5, refreshes: 5 }; // Starter pack
-    } catch { return { hints: 5, undos: 5, refreshes: 5 }; }
+      return saved ? JSON.parse(saved) : { hints: 5, undos: 5, refreshes: 5, rotators: 5 }; // Starter pack
+    } catch { return { hints: 5, undos: 5, refreshes: 5, rotators: 5 }; }
   });
+
+  // Separate inventory for infinite mode (resets every game)
+  const [infiniteInventory, setInfiniteInventory] = useState<Inventory>({ hints: 3, undos: 3, refreshes: 3, rotators: 3 });
 
   const [unlockedSouvenirs, setUnlockedSouvenirs] = useState<string[]>(() => {
     try {
@@ -82,6 +85,18 @@ const App: React.FC = () => {
   const [lastCheckIn, setLastCheckIn] = useState<string | null>(() => {
      return localStorage.getItem('blockfit-last-checkin');
   });
+
+  // Calendar State
+  const [showCalendar, setShowCalendar] = useState<boolean>(false);
+  const [checkInHistory, setCheckInHistory] = useState<string[]>(() => {
+     try {
+       const saved = localStorage.getItem('blockfit-checkin-history');
+       return saved ? JSON.parse(saved) : [];
+     } catch { return []; }
+  });
+
+  // Souvenir Detail State
+  const [selectedSouvenir, setSelectedSouvenir] = useState<Souvenir | null>(null);
 
   const [showDailyReward, setShowDailyReward] = useState<boolean>(false);
   const [dailyRewardItems, setDailyRewardItems] = useState<string[]>([]);
@@ -123,15 +138,30 @@ const App: React.FC = () => {
 
   // Undo/Redo Stacks
   const [history, setHistory] = useState<GameState[]>([]);
-  const [redoStack, setRedoStack] = useState<GameState[]>([]);
-
+  
   // --- Persistence Wrappers ---
-  const updateInventory = (type: keyof Inventory, amount: number) => {
+  const updateGlobalInventory = (type: keyof Inventory, amount: number) => {
     setInventory(prev => {
       const next = { ...prev, [type]: prev[type] + amount };
       localStorage.setItem('blockfit-inventory', JSON.stringify(next));
       return next;
     });
+  };
+
+  const updateInfiniteInventory = (type: keyof Inventory, amount: number) => {
+    setInfiniteInventory(prev => ({ ...prev, [type]: prev[type] + amount }));
+  };
+
+  const useInventoryItem = (type: keyof Inventory) => {
+    if (gameMode === 'infinite') {
+      updateInfiniteInventory(type, -1);
+    } else {
+      updateGlobalInventory(type, -1);
+    }
+  };
+
+  const getCurrentInventory = (type: keyof Inventory) => {
+    return gameMode === 'infinite' ? infiniteInventory[type] : inventory[type];
   };
 
   const unlockSouvenir = (id: string) => {
@@ -140,6 +170,20 @@ const App: React.FC = () => {
       setUnlockedSouvenirs(next);
       localStorage.setItem('blockfit-souvenirs', JSON.stringify(next));
     }
+  };
+
+  const registerCheckIn = () => {
+    const today = new Date().toDateString();
+    setCheckInHistory(prev => {
+      if (!prev.includes(today)) {
+        const next = [...prev, today];
+        localStorage.setItem('blockfit-checkin-history', JSON.stringify(next));
+        return next;
+      }
+      return prev;
+    });
+    setLastCheckIn(today);
+    localStorage.setItem('blockfit-last-checkin', today);
   };
 
   // --- Helpers ---
@@ -211,6 +255,9 @@ const App: React.FC = () => {
     setCurrentLevel(level || null);
     setMovesLeft(level ? level.maxMoves : 0);
     
+    // Reset Infinite Inventory
+    setInfiniteInventory({ hints: 3, undos: 3, refreshes: 3, rotators: 3 });
+    
     setGrid(createEmptyGrid());
     setScore(0);
     setIsGameOver(false);
@@ -222,10 +269,13 @@ const App: React.FC = () => {
     setHint(null);
     setAvailableShapes([]); 
     setHistory([]);
-    setRedoStack([]);
     setComboCount(0);
     dragInfoRef.current = null;
     setIsDragging(false);
+    
+    // Ensure overlays are closed
+    setShowResetConfirm(false);
+    setShowDailyReward(false);
     
     setView('game');
   };
@@ -242,25 +292,25 @@ const App: React.FC = () => {
      if (lastCheckIn !== today) {
         // Grant Rewards
         const rewards = [];
-        const rand = Math.random();
         
-        // Always give at least 1 refresh
-        updateInventory('refreshes', 1);
+        updateGlobalInventory('refreshes', 1);
         rewards.push('+1 Shuffle');
-
-        if (rand > 0.3) {
-           updateInventory('undos', 1);
+        updateGlobalInventory('rotators', 1);
+        rewards.push('+1 Rotate');
+        
+        const rand = Math.random();
+        if (rand > 0.5) {
+           updateGlobalInventory('undos', 1);
            rewards.push('+1 Undo');
         }
-        if (rand > 0.6) {
-           updateInventory('hints', 1);
+        if (rand > 0.8) {
+           updateGlobalInventory('hints', 1);
            rewards.push('+1 Hint');
         }
 
         setDailyRewardItems(rewards);
         setShowDailyReward(true);
-        setLastCheckIn(today);
-        localStorage.setItem('blockfit-last-checkin', today);
+        registerCheckIn();
      }
   };
 
@@ -284,10 +334,10 @@ const App: React.FC = () => {
             const levelNum = parseInt(currentLevel.label);
             const rewards: string[] = [];
             if (levelNum % 5 === 0) {
-               updateInventory('refreshes', 1);
+               updateGlobalInventory('refreshes', 1);
                rewards.push('+1 Shuffle');
                if (levelNum % 10 === 0) {
-                   updateInventory('undos', 1);
+                   updateGlobalInventory('undos', 1);
                    rewards.push('+1 Undo');
                }
             }
@@ -343,7 +393,6 @@ const App: React.FC = () => {
         grid, score, availableShapes, isGameOver, comboCount, movesLeft
       };
       setHistory(prev => [...prev, currentState]);
-      setRedoStack([]);
       setHint(null);
 
       // Decrement Moves in Level Mode
@@ -397,10 +446,10 @@ const App: React.FC = () => {
               const levelNum = parseInt(currentLevel.label);
               const rewards: string[] = [];
               if (levelNum % 5 === 0) {
-                 updateInventory('refreshes', 1);
+                 updateGlobalInventory('refreshes', 1);
                  rewards.push('+1 Shuffle');
                  if (levelNum % 10 === 0) {
-                    updateInventory('undos', 1);
+                    updateGlobalInventory('undos', 1);
                     rewards.push('+1 Undo');
                  }
               }
@@ -425,10 +474,10 @@ const App: React.FC = () => {
               const levelNum = parseInt(currentLevel.label);
               const rewards: string[] = [];
               if (levelNum % 5 === 0) {
-                 updateInventory('refreshes', 1);
+                 updateGlobalInventory('refreshes', 1);
                  rewards.push('+1 Shuffle');
                  if (levelNum % 10 === 0) {
-                     updateInventory('undos', 1);
+                     updateGlobalInventory('undos', 1);
                      rewards.push('+1 Undo');
                  }
               }
@@ -606,10 +655,9 @@ const App: React.FC = () => {
   const handleUndo = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (history.length === 0 || clearingLines || showResetConfirm || levelResult) return;
-    if (inventory.undos <= 0) return;
+    if (getCurrentInventory('undos') <= 0) return;
 
     const previousState = history[history.length - 1];
-    setRedoStack([...redoStack, { grid, score, availableShapes, isGameOver, comboCount, movesLeft }]);
     setGrid(previousState.grid);
     setScore(previousState.score);
     setAvailableShapes(previousState.availableShapes);
@@ -621,49 +669,45 @@ const App: React.FC = () => {
     setHistory(history.slice(0, -1));
     setSelectedShapeIdx(null);
     setHint(null);
-    updateInventory('undos', -1);
-  };
-
-  const handleRedo = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (redoStack.length === 0 || clearingLines || showResetConfirm || isGameOver || levelResult) return;
-    if (inventory.undos <= 0) return; // Using undo cost for redo is optional, but let's keep it simple or free? Let's make Redo free for now or cost 'redo'?
-    // Actually, redo usually is part of the undo feature. Let's make Redo consume nothing or an Undo token? 
-    // For simplicity, let's make Redo Free since you already paid for Undo.
-    
-    const nextState = redoStack[redoStack.length - 1];
-    setHistory([...history, { grid, score, availableShapes, isGameOver, comboCount, movesLeft }]);
-    setGrid(nextState.grid);
-    setScore(nextState.score);
-    setAvailableShapes(nextState.availableShapes);
-    setIsGameOver(nextState.isGameOver);
-    setComboCount(nextState.comboCount);
-    setMovesLeft(nextState.movesLeft);
-    
-    setRedoStack(redoStack.slice(0, -1));
-    setSelectedShapeIdx(null);
-    setHint(null);
+    useInventoryItem('undos');
   };
 
   const handleRefresh = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGameOver || showResetConfirm || clearingLines || levelResult) return;
-    if (inventory.refreshes <= 0) return;
+    if (getCurrentInventory('refreshes') <= 0) return;
     playShuffleSound();
     generateNewShapes();
-    updateInventory('refreshes', -1);
+    useInventoryItem('refreshes');
     setSelectedShapeIdx(null);
+    setHint(null);
+  };
+
+  const handleRotate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isGameOver || showResetConfirm || clearingLines || levelResult) return;
+    if (selectedShapeIdx === null) return;
+    if (getCurrentInventory('rotators') <= 0) return;
+
+    playShuffleSound(); // Reuse shuffle sound or add new one
+    
+    const newShapes = [...availableShapes];
+    const shape = newShapes[selectedShapeIdx];
+    shape.matrix = rotateShapeMatrix(shape.matrix);
+    
+    setAvailableShapes(newShapes);
+    useInventoryItem('rotators');
     setHint(null);
   };
 
   const handleHint = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGameOver || availableShapes.length === 0 || showResetConfirm || clearingLines || levelResult) return;
-    if (inventory.hints <= 0) return;
+    if (getCurrentInventory('hints') <= 0) return;
     const bestMove = findBestMove(grid, availableShapes);
     if (bestMove) {
       setHint(bestMove);
-      updateInventory('hints', -1);
+      useInventoryItem('hints');
     }
   };
 
@@ -671,7 +715,7 @@ const App: React.FC = () => {
 
   const renderHome = () => {
     const today = new Date().toDateString();
-    const canCheckIn = lastCheckIn !== today;
+    const isCheckedIn = lastCheckIn === today;
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-4 animate-in fade-in duration-500 relative">
@@ -722,18 +766,17 @@ const App: React.FC = () => {
           </div>
           
           <button 
-            onClick={handleDailyCheckIn}
-            disabled={!canCheckIn}
+            onClick={() => setShowCalendar(true)}
             className={`
               relative group flex items-center justify-center gap-3 w-full py-3 rounded-xl font-bold text-sm border transition-all hover:scale-105 active:scale-95
-              ${canCheckIn 
+              ${!isCheckedIn 
                 ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-green-500 shadow-lg shadow-green-500/20' 
-                : 'bg-slate-900 text-slate-500 border-slate-800 cursor-default opacity-80'}
+                : 'bg-slate-900 text-slate-500 border-slate-800 opacity-80'}
             `}
           >
             <Calendar size={18} />
-            {canCheckIn ? 'Daily Check-in' : 'Checked In'}
-            {canCheckIn && (
+            {isCheckedIn ? 'Checked In' : 'Daily Check-in'}
+            {!isCheckedIn && (
                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
             )}
           </button>
@@ -744,9 +787,55 @@ const App: React.FC = () => {
           Author: Vertex Wei
         </div>
 
-        {/* Daily Reward Modal */}
-        {showDailyReward && (
+        {/* Calendar Modal */}
+        {showCalendar && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
+             <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl flex flex-col items-center gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
+                <div className="flex justify-between w-full items-center">
+                   <h2 className="text-xl font-bold text-white flex items-center gap-2"><Calendar className="text-green-500" /> Daily Rewards</h2>
+                   <button onClick={() => setShowCalendar(false)}><X className="text-slate-500 hover:text-white" /></button>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2 w-full">
+                  {Array.from({length: 30}, (_, i) => {
+                    const day = i + 1;
+                    const date = new Date();
+                    date.setDate(date.getDate() - (date.getDate() - day)); // Crude approx for current month visualization
+                    const isToday = day === new Date().getDate();
+                    const isChecked = checkInHistory.some(d => new Date(d).getDate() === day && new Date(d).getMonth() === new Date().getMonth());
+                    
+                    return (
+                      <div key={i} className={`
+                        aspect-square rounded-lg flex flex-col items-center justify-center text-xs border relative
+                        ${isToday ? 'border-green-500 bg-green-500/10' : 'border-slate-800 bg-slate-800/50'}
+                        ${isChecked ? 'opacity-50' : ''}
+                      `}>
+                         <span className={isToday ? "text-green-400 font-bold" : "text-slate-400"}>{day}</span>
+                         {isChecked && <CheckCircle2 size={12} className="text-green-500 mt-1" />}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {!isCheckedIn ? (
+                  <button 
+                    onClick={handleDailyCheckIn}
+                    className="mt-2 w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold shadow-lg shadow-green-500/20"
+                  >
+                    Check In Now
+                  </button>
+                ) : (
+                  <div className="text-green-500 font-bold flex items-center gap-2 mt-2">
+                    <CheckCircle2 /> Checked in today
+                  </div>
+                )}
+             </div>
+          </div>
+        )}
+
+        {/* Daily Reward Collect Overlay */}
+        {showDailyReward && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in">
              <div className="bg-slate-900 border border-slate-700 p-8 rounded-2xl flex flex-col items-center gap-4 max-w-xs text-center shadow-2xl animate-in zoom-in-95">
                 <Gift size={48} className="text-green-500 animate-bounce" />
                 <h2 className="text-2xl font-black text-white">Daily Rewards!</h2>
@@ -879,40 +968,121 @@ const App: React.FC = () => {
     );
   };
 
-  const renderSouvenirs = () => (
-    <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
-      <div className="w-full flex items-center justify-between mb-8">
-        <button onClick={() => setView('home')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
-          <ArrowLeft size={24} />
-        </button>
-        <h2 className="text-2xl font-bold text-white">Collection</h2>
-        <div className="w-10"></div>
-      </div>
+  const renderSouvenirs = () => {
+    const totalSouvenirs = SOUVENIRS.length;
+    const unlockedCount = unlockedSouvenirs.length;
+    const progress = Math.round((unlockedCount / totalSouvenirs) * 100);
 
-      <div className="grid grid-cols-2 gap-4 w-full overflow-y-auto pb-4 custom-scrollbar">
-         {SOUVENIRS.map(souvenir => {
-            const isUnlocked = unlockedSouvenirs.includes(souvenir.id);
-            const Icon = IconMap[souvenir.icon] || Box;
+    return (
+      <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
+        <div className="w-full flex items-center justify-between mb-8">
+          <button onClick={() => setView('home')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="text-2xl font-bold text-white">Collection</h2>
+          <div className="w-10"></div>
+        </div>
 
-            return (
-               <div key={souvenir.id} className={`flex flex-col items-center p-4 rounded-2xl border ${isUnlocked ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-800 opacity-60'}`}>
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isUnlocked ? 'bg-slate-950 shadow-inner' : 'bg-slate-950'}`}>
-                     {isUnlocked ? (
-                        <Icon size={32} color={souvenir.color} className="drop-shadow-lg" />
-                     ) : (
-                        <Lock size={24} className="text-slate-700" />
-                     )}
-                  </div>
-                  <h3 className="font-bold text-center text-sm mb-1">{isUnlocked ? souvenir.name : '???'}</h3>
-                  <p className="text-[10px] text-center text-slate-500 leading-tight">
-                     {isUnlocked ? souvenir.description : 'Unlock by completing chapters.'}
-                  </p>
-               </div>
-            );
-         })}
+        {/* Collection Progress */}
+        <div className="w-full bg-slate-900 rounded-xl p-4 mb-6 border border-slate-800">
+           <div className="flex justify-between text-xs font-bold mb-2">
+              <span className="text-slate-400">Total Progress</span>
+              <span className="text-pink-400">{progress}%</span>
+           </div>
+           <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-pink-500 transition-all duration-1000" style={{width: `${progress}%`}} />
+           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 w-full overflow-y-auto pb-4 custom-scrollbar">
+          {SOUVENIRS.map(souvenir => {
+              const isUnlocked = unlockedSouvenirs.includes(souvenir.id);
+              const Icon = IconMap[souvenir.icon] || Box;
+
+              return (
+                <button 
+                  key={souvenir.id} 
+                  onClick={() => setSelectedSouvenir(souvenir)}
+                  className={`
+                    relative flex flex-col items-center p-6 rounded-2xl border transition-all duration-300 group
+                    ${isUnlocked 
+                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-750 hover:border-slate-600 shadow-lg' 
+                      : 'bg-slate-900 border-slate-800 opacity-80 cursor-default'}
+                  `}
+                >
+                    <div className={`
+                      w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300
+                      ${isUnlocked ? 'bg-slate-950 shadow-inner ring-1 ring-white/10' : 'bg-slate-950'}
+                    `}>
+                      {isUnlocked ? (
+                          <Icon size={40} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+                      ) : (
+                          <div className="relative">
+                            <Icon size={40} className="text-slate-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
+                            <HelpCircle size={24} className="absolute inset-0 m-auto text-slate-700" />
+                          </div>
+                      )}
+                    </div>
+                    {isUnlocked && <div className="absolute top-2 right-2 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
+                </button>
+              );
+          })}
+        </div>
+
+        {/* Premium Souvenir Detail Modal */}
+        {selectedSouvenir && (
+           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in">
+              <div className="relative bg-slate-900 border border-slate-600 p-8 rounded-2xl flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 mx-4 overflow-hidden">
+                 
+                 {/* Background Glow */}
+                 <div 
+                   className="absolute -top-20 -left-20 w-40 h-40 rounded-full blur-[80px] opacity-30 pointer-events-none"
+                   style={{ backgroundColor: unlockedSouvenirs.includes(selectedSouvenir.id) ? selectedSouvenir.color : '#000' }}
+                 />
+
+                 <button onClick={() => setSelectedSouvenir(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white z-10">
+                    <X size={24} />
+                 </button>
+
+                 {(() => {
+                    const isUnlocked = unlockedSouvenirs.includes(selectedSouvenir.id);
+                    const Icon = IconMap[selectedSouvenir.icon] || Box;
+                    return (
+                       <>
+                          <div className={`
+                             w-32 h-32 rounded-full flex items-center justify-center bg-slate-950 shadow-2xl ring-4 ring-slate-800
+                             ${!isUnlocked ? 'grayscale opacity-50' : ''}
+                          `}>
+                             <Icon 
+                               size={64} 
+                               color={isUnlocked ? selectedSouvenir.color : '#333'} 
+                               className={isUnlocked ? 'drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]' : ''} 
+                             />
+                          </div>
+
+                          <div className="text-center space-y-2 z-10">
+                             <h2 className="text-2xl font-black text-white">{isUnlocked ? selectedSouvenir.name : 'Unknown Artifact'}</h2>
+                             <p className="text-slate-400 text-sm leading-relaxed">
+                                {isUnlocked ? selectedSouvenir.description : 'Unlock this souvenir by completing specific chapters in Adventure Mode.'}
+                             </p>
+                          </div>
+                          
+                          <div className="w-full pt-4 border-t border-slate-800 flex justify-center">
+                             {isUnlocked ? (
+                                <span className="text-green-500 font-bold flex items-center gap-2 text-sm"><CheckCircle2 size={16}/> Acquired</span>
+                             ) : (
+                                <span className="text-slate-500 font-bold flex items-center gap-2 text-sm"><Lock size={16}/> Locked</span>
+                             )}
+                          </div>
+                       </>
+                    )
+                 })()}
+              </div>
+           </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderGame = () => {
     const historicalBest = leaderboard.length > 0 ? leaderboard[0].score : 0;
@@ -1020,7 +1190,7 @@ const App: React.FC = () => {
 
         {/* Level Progress Bar */}
         {isLevelMode && (
-          <div className="w-full max-w-[85vw] mb-6 relative h-5 bg-slate-800 rounded-full border border-slate-700 mt-2">
+          <div className="w-full max-w-[85vw] mb-6 relative h-6 bg-slate-800 rounded-full border border-slate-700 mt-2">
              <div 
                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
                style={{ width: `${progressPercent}%` }}
@@ -1034,9 +1204,9 @@ const App: React.FC = () => {
                     className="absolute top-0 bottom-0 w-0.5 bg-white/20 flex flex-col items-center justify-center overflow-visible"
                     style={{ left: `${p * 100}%` }}
                   >
-                    <div className="absolute -top-6 flex flex-col items-center">
-                       <Crown size={12} className={`mb-0.5 ${score >= targetVal ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'}`} />
-                       <span className="text-[8px] font-mono text-slate-500 bg-slate-900/80 px-1 rounded">{targetVal}</span>
+                    <div className="absolute -top-7 flex flex-col items-center z-10">
+                       <Crown size={16} className={`mb-0.5 drop-shadow-md ${score >= targetVal ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'}`} />
+                       <span className="text-[9px] font-mono font-bold text-white bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">{targetVal}</span>
                     </div>
                   </div>
                 );
@@ -1184,11 +1354,11 @@ const App: React.FC = () => {
               <div className="flex flex-col gap-3 w-full">
                 <button 
                   onClick={handleUndo}
-                  disabled={history.length === 0 || inventory.undos <= 0}
+                  disabled={history.length === 0 || getCurrentInventory('undos') <= 0}
                   className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                 >
                   <RotateCcw size={18} />
-                  Undo Last Move {inventory.undos > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{inventory.undos}</span>}
+                  Undo Last Move {getCurrentInventory('undos') > 0 && <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs ml-1">{getCurrentInventory('undos')}</span>}
                 </button>
                 <button 
                   onClick={() => startNewGame(gameMode, currentLevel)}
@@ -1240,40 +1410,46 @@ const App: React.FC = () => {
         <div className="w-full max-w-md flex flex-col gap-4">
            <div className="flex justify-between items-center px-4">
              <div className="flex gap-4">
+               {/* Undo */}
                <button 
                  onClick={handleUndo} 
-                 disabled={history.length === 0 || !!clearingLines || showResetConfirm || inventory.undos <= 0 || !!levelResult}
+                 disabled={history.length === 0 || !!clearingLines || showResetConfirm || getCurrentInventory('undos') <= 0 || !!levelResult}
                  className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
                >
                  <RotateCcw size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{inventory.undos}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{getCurrentInventory('undos')}</span>
                </button>
+               
+               {/* Rotate (Replaces Redo) */}
                <button 
-                 onClick={handleRedo} 
-                 disabled={redoStack.length === 0 || !!clearingLines || showResetConfirm || isGameOver || inventory.undos <= 0 || !!levelResult}
+                 onClick={handleRotate} 
+                 disabled={selectedShapeIdx === null || !!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('rotators') <= 0 || !!levelResult}
                  className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
                >
-                 <RotateCw size={20} />
-                 {/* Redo shares Undo cost/pool or free? Let's hide badge or make it clear. */}
+                 <RefreshCw size={20} className={selectedShapeIdx !== null ? "animate-spin-once" : ""} />
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{getCurrentInventory('rotators')}</span>
                </button>
+               
+               {/* Refresh/Shuffle */}
                <button 
                  onClick={handleRefresh} 
-                 disabled={!!clearingLines || showResetConfirm || isGameOver || inventory.refreshes <= 0 || !!levelResult}
+                 disabled={!!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('refreshes') <= 0 || !!levelResult}
                  className="relative group p-3 bg-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-700/50"
                >
                  <Shuffle size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{inventory.refreshes}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-950">{getCurrentInventory('refreshes')}</span>
                </button>
              </div>
   
+             {/* Hint */}
              <button 
                 onClick={handleHint}
-                disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || inventory.hints <= 0 || !!levelResult}
+                disabled={isGameOver || availableShapes.length === 0 || showResetConfirm || !!clearingLines || getCurrentInventory('hints') <= 0 || !!levelResult}
                 className="relative flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl disabled:opacity-30 disabled:bg-transparent transition-all border border-yellow-500/20 active:scale-95"
               >
                 <Lightbulb size={18} className={hint ? "fill-yellow-500" : ""} />
                 <span className="font-bold text-sm">HINT</span>
-                <span className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">{inventory.hints}</span>
+                <span className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">{getCurrentInventory('hints')}</span>
               </button>
           </div>
           

@@ -1,3 +1,4 @@
+
 import { BOARD_SIZE } from '../constants';
 import { GridType, ShapeDefinition, Position, ShapeObj } from '../types';
 
@@ -121,6 +122,21 @@ export const checkGameOver = (grid: GridType, shapes: ShapeDefinition[]): boolea
   }
 
   return true;
+};
+
+// Rotate Matrix 90 degrees clockwise
+export const rotateShapeMatrix = (matrix: ShapeDefinition): ShapeDefinition => {
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  // Transpose and reverse rows for clockwise rotation
+  const newMatrix: number[][] = Array.from({ length: cols }, () => Array(rows).fill(0));
+  
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      newMatrix[c][rows - 1 - r] = matrix[r][c];
+    }
+  }
+  return newMatrix;
 };
 
 // AI Logic for Hints

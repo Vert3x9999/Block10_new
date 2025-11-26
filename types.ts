@@ -51,6 +51,7 @@ export interface Inventory {
   hints: number;
   undos: number;
   refreshes: number;
+  rotators: number; // New tool
 }
 
 export interface Souvenir {
