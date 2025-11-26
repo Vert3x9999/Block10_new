@@ -1,5 +1,5 @@
 
-import { ShapeDefinition, ChapterData, Souvenir } from './types';
+import { ShapeDefinition, ChapterData, Souvenir, WorldData } from './types';
 
 export const BOARD_SIZE = 10;
 
@@ -76,8 +76,8 @@ const generateLevels = (
       id: `${chapterId}-${i + 1}`,
       label: `${i + 1}`,
       targetScore: baseScore + (i * scoreIncrement),
-      // Decrease moves slightly as levels get harder, but keep a floor
-      maxMoves: Math.max(15, baseMoves - Math.floor(i * moveDecrement)),
+      // Decrease moves slightly as levels get harder, but keep a floor of 20 (Balanced)
+      maxMoves: Math.max(20, baseMoves - Math.floor(i * moveDecrement)),
       coinReward: coinReward
     };
   });
@@ -104,6 +104,15 @@ export const CHAPTERS: ChapterData[] = [
     description: 'Rise above the limits.',
     souvenirId: 's_crystal_prism',
     levels: generateLevels('ch3', 10000, 1500, 25, 0.5, 30, 40) // Coins 40-54
+  }
+];
+
+export const WORLDS: WorldData[] = [
+  {
+    id: 'world1',
+    title: 'World 1: The Beginning',
+    description: 'Where everything starts. Contains Chapter 1-3.',
+    chapterIds: ['ch1', 'ch2', 'ch3']
   }
 ];
 

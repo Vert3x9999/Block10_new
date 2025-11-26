@@ -42,6 +42,13 @@ export interface ChapterData {
   souvenirId: string; // The ID of the souvenir unlocked by completing this chapter
 }
 
+export interface WorldData {
+  id: string;
+  title: string;
+  description: string;
+  chapterIds: string[];
+}
+
 export interface LevelProgress {
   [levelId: string]: number; // number of crowns
 }

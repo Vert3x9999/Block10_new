@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridType, ShapeObj, Position, GameState, LevelConfig, LevelProgress, Inventory, Souvenir } from './types';
-import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, SOUVENIRS, SHOP_PRICES } from './constants';
+import { SHAPE_COLORS, BOARD_SIZE, SHAPES, CHAPTERS, WORLDS, SOUVENIRS, SHOP_PRICES } from './constants';
 import { createEmptyGrid, canPlaceShape, placeShapeOnGrid, findClearedLines, clearLines, checkGameOver, findBestMove, rotateShapeMatrix } from './utils/gameLogic';
 import { playPlaceSound, playClearSound, playGameOverSound, playShuffleSound, playLevelWinSound, playLevelFailSound } from './utils/soundEffects';
 import GridCell from './components/GridCell';
 import ShapeTray from './components/ShapeTray';
 import ShapeRenderer from './components/ShapeRenderer';
-import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon, X, HelpCircle, Coins, ShoppingBag, HeartPulse, Backpack, Timer } from 'lucide-react';
+import { Trophy, RefreshCw, AlertCircle, Lightbulb, RotateCcw, RotateCw, Play, Home, ListOrdered, ArrowLeft, History, Trash2, Calendar, Crown, Shuffle, Map as MapIcon, Star, Lock, CheckCircle2, Package, Gift, Hourglass, Box, Compass, Gem, Scroll, Key, Infinity as InfinityIcon, X, HelpCircle, Coins, ShoppingBag, HeartPulse, Backpack, Timer, Globe2 } from 'lucide-react';
 
 // Static dragging info that doesn't trigger re-renders
 interface DragInfo {
@@ -25,7 +25,7 @@ interface ScoreRecord {
   timestamp: number;
 }
 
-type ViewState = 'home' | 'game' | 'leaderboard' | 'chapter-select' | 'level-select' | 'souvenirs';
+type ViewState = 'home' | 'game' | 'leaderboard' | 'world-select' | 'chapter-select' | 'level-select' | 'souvenirs';
 type GameMode = 'infinite' | 'level';
 
 // Icon mapping for Souvenirs
@@ -54,6 +54,7 @@ const App: React.FC = () => {
   const [movesLeft, setMovesLeft] = useState<number>(0);
   
   // Level Mode State
+  const [currentWorldId, setCurrentWorldId] = useState<string | null>(null);
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
   const [currentLevel, setCurrentLevel] = useState<LevelConfig | null>(null);
   const [levelProgress, setLevelProgress] = useState<LevelProgress>(() => {
@@ -814,20 +815,20 @@ const App: React.FC = () => {
         <button 
            onClick={handleClaimOnlineReward}
            disabled={totalOnlineReward <= 0}
-           className="absolute top-4 right-4 bg-slate-900 border border-slate-700 rounded-2xl p-3 flex flex-col items-center gap-1 shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+           className="absolute top-4 right-4 bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-yellow-400 rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0_0_15px_rgba(250,204,21,0.4)] hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:grayscale"
         >
            <div className="relative">
-             <Timer size={24} className={totalOnlineReward > 0 ? "text-yellow-500 animate-pulse" : "text-slate-500"} />
+             <Timer size={24} className={totalOnlineReward > 0 ? "text-yellow-300 animate-pulse drop-shadow-sm" : "text-slate-300"} />
              <svg className="absolute -top-1 -left-1 w-[32px] h-[32px] rotate-[-90deg]" viewBox="0 0 36 36">
                <path
-                  className="text-slate-700"
+                  className="text-white/20"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="3"
                />
                <path
-                  className="text-yellow-500 transition-all duration-1000"
+                  className="text-yellow-400 transition-all duration-1000 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
                   stroke="currentColor"
@@ -836,10 +837,9 @@ const App: React.FC = () => {
                />
              </svg>
            </div>
-           <div className="text-[10px] font-bold text-yellow-500 flex items-center gap-0.5">
+           <div className="text-[10px] font-black text-yellow-300 flex items-center gap-0.5 drop-shadow-md">
              <Coins size={10} /> {totalOnlineReward}
            </div>
-           {totalOnlineReward > 0 && <div className="text-[8px] text-green-400 font-bold uppercase animate-bounce">Claim!</div>}
         </button>
 
         <div className="text-center space-y-2 mb-4">
@@ -874,7 +874,7 @@ const App: React.FC = () => {
 
         <div className="flex flex-col gap-4 w-full max-w-xs">
           <button 
-            onClick={() => setView('chapter-select')}
+            onClick={() => setView('world-select')}
             className="group relative flex items-center justify-center gap-3 w-full py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-purple-500/25 transition-all hover:scale-105 active:scale-95"
           >
             <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1080,59 +1080,118 @@ const App: React.FC = () => {
     );
   };
 
-  const renderChapterSelect = () => (
+  const renderWorldSelect = () => (
     <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
-      <div className="w-full flex items-center justify-between mb-4">
+      <div className="w-full flex items-center justify-between mb-8">
         <button onClick={() => setView('home')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
           <ArrowLeft size={24} />
         </button>
-        <h2 className="text-2xl font-bold text-white">Select Chapter</h2>
+        <h2 className="text-2xl font-bold text-white">Select World</h2>
         <div className="w-10"></div>
-      </div>
-      
-      {/* World Group Header */}
-      <div className="w-full flex items-center gap-4 mb-4 opacity-50">
-        <div className="h-[1px] bg-slate-600 flex-1"></div>
-        <span className="text-xs font-black tracking-widest text-slate-400 uppercase">World 1: The Beginning</span>
-        <div className="h-[1px] bg-slate-600 flex-1"></div>
       </div>
 
       <div className="flex flex-col gap-6 w-full">
-        {CHAPTERS.map(chapter => {
-          const unlockedCount = chapter.levels.filter(l => (levelProgress[l.id] || 0) > 0).length;
-          const totalLevels = chapter.levels.length;
-          const isComplete = unlockedCount === totalLevels;
+        {WORLDS.map(world => {
+          // Calculate progress for world
+          const chaptersInWorld = CHAPTERS.filter(c => world.chapterIds.includes(c.id));
+          let totalCrowns = 0;
+          let maxCrowns = 0;
+          
+          chaptersInWorld.forEach(ch => {
+              ch.levels.forEach(lvl => {
+                  totalCrowns += (levelProgress[lvl.id] || 0);
+                  maxCrowns += 3;
+              });
+          });
+          
+          const progress = Math.round((totalCrowns / maxCrowns) * 100) || 0;
 
           return (
             <button
-              key={chapter.id}
+              key={world.id}
               onClick={() => {
-                setCurrentChapterId(chapter.id);
-                setView('level-select');
+                setCurrentWorldId(world.id);
+                setView('chapter-select');
               }}
-              className="relative flex flex-col gap-2 p-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-xl overflow-hidden"
+              className="group relative flex flex-col gap-4 p-6 bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 hover:border-indigo-400 rounded-3xl text-left transition-all hover:scale-105 active:scale-95 shadow-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-start z-10">
-                 <div>
-                    <h3 className="text-xl font-black text-white">{chapter.title}</h3>
-                    <p className="text-slate-400 text-sm mt-1">{chapter.description}</p>
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                 <Globe2 size={120} />
+              </div>
+              
+              <div className="z-10">
+                 <h3 className="text-2xl font-black text-white mb-1">{world.title}</h3>
+                 <p className="text-indigo-200 text-sm opacity-80">{world.description}</p>
+              </div>
+              
+              <div className="z-10 mt-2 bg-black/30 p-3 rounded-xl backdrop-blur-sm border border-white/5">
+                 <div className="flex justify-between items-center text-xs font-bold mb-1">
+                    <span className="text-yellow-500 flex items-center gap-1"><Crown size={12}/> Crowns</span>
+                    <span className="text-white">{totalCrowns} / {maxCrowns}</span>
                  </div>
-                 {isComplete && <CheckCircle2 className="text-green-500" size={24} />}
+                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-yellow-500 transition-all duration-1000" style={{ width: `${progress}%` }} />
+                 </div>
               </div>
-              
-              <div className="mt-4 flex items-center justify-between text-xs font-bold z-10">
-                <span className="text-purple-400">15 LEVELS</span>
-                <span className="text-slate-500">{unlockedCount} / {totalLevels} Completed</span>
-              </div>
-              
-              {/* Progress Bar Background */}
-              <div className="absolute bottom-0 left-0 h-1 bg-green-500/50" style={{ width: `${(unlockedCount/totalLevels)*100}%` }} />
             </button>
           );
         })}
       </div>
     </div>
   );
+
+  const renderChapterSelect = () => {
+    // Filter chapters by current world
+    const world = WORLDS.find(w => w.id === currentWorldId);
+    const displayedChapters = CHAPTERS.filter(c => world?.chapterIds.includes(c.id));
+
+    return (
+      <div className="flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300">
+        <div className="w-full flex items-center justify-between mb-4">
+          <button onClick={() => setView('world-select')} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white">
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="text-xl font-bold text-white truncate max-w-[200px]">{world?.title || 'Select Chapter'}</h2>
+          <div className="w-10"></div>
+        </div>
+
+        <div className="flex flex-col gap-6 w-full mt-2">
+          {displayedChapters.map(chapter => {
+            const unlockedCount = chapter.levels.filter(l => (levelProgress[l.id] || 0) > 0).length;
+            const totalLevels = chapter.levels.length;
+            const isComplete = unlockedCount === totalLevels;
+
+            return (
+              <button
+                key={chapter.id}
+                onClick={() => {
+                  setCurrentChapterId(chapter.id);
+                  setView('level-select');
+                }}
+                className="relative flex flex-col gap-2 p-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-xl overflow-hidden"
+              >
+                <div className="flex justify-between items-start z-10">
+                  <div>
+                      <h3 className="text-xl font-black text-white">{chapter.title}</h3>
+                      <p className="text-slate-400 text-sm mt-1">{chapter.description}</p>
+                  </div>
+                  {isComplete && <CheckCircle2 className="text-green-500" size={24} />}
+                </div>
+                
+                <div className="mt-4 flex items-center justify-between text-xs font-bold z-10">
+                  <span className="text-purple-400">15 LEVELS</span>
+                  <span className="text-slate-500">{unlockedCount} / {totalLevels} Completed</span>
+                </div>
+                
+                {/* Progress Bar Background */}
+                <div className="absolute bottom-0 left-0 h-1 bg-green-500/50" style={{ width: `${(unlockedCount/totalLevels)*100}%` }} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const renderLevelSelect = () => {
     const chapter = CHAPTERS.find(c => c.id === currentChapterId);
@@ -1806,6 +1865,7 @@ const App: React.FC = () => {
     <div className="bg-slate-950 min-h-screen text-slate-200 font-sans selection:bg-blue-500/30 touch-none overflow-hidden">
       {view === 'home' && renderHome()}
       {view === 'leaderboard' && renderLeaderboard()}
+      {view === 'world-select' && renderWorldSelect()}
       {view === 'chapter-select' && renderChapterSelect()}
       {view === 'level-select' && renderLevelSelect()}
       {view === 'souvenirs' && renderSouvenirs()}
