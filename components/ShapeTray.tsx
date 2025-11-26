@@ -36,8 +36,8 @@ const ShapeTray: React.FC<ShapeTrayProps> = ({ shapes, selectedIndex, draggingIn
               relative flex items-center justify-center
               w-20 h-20 rounded-2xl transition-all duration-200 transform cursor-grab active:cursor-grabbing border
               ${isSelected 
-                  ? 'bg-white dark:bg-slate-700 ring-4 ring-blue-400/50 dark:ring-blue-500/50 shadow-xl scale-110 border-blue-200 dark:border-transparent z-10' 
-                  : 'bg-white/50 dark:bg-slate-800/60 hover:bg-white/80 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/50 shadow-sm'}
+                  ? 'bg-white dark:bg-zinc-700 ring-4 ring-blue-400/50 dark:ring-blue-500/50 shadow-xl scale-110 border-blue-200 dark:border-transparent z-10' 
+                  : 'bg-white/50 dark:bg-zinc-800/60 hover:bg-white/80 dark:hover:bg-zinc-800 border-zinc-200 dark:border-zinc-700/50 shadow-sm'}
               ${isDragging ? 'opacity-0' : 'opacity-100'}
             `}
           >
@@ -50,7 +50,7 @@ const ShapeTray: React.FC<ShapeTrayProps> = ({ shapes, selectedIndex, draggingIn
         );
       })}
       {shapes.length === 0 && (
-         <div className="text-slate-400 dark:text-slate-500 text-sm italic animate-pulse">Refilling...</div>
+         <div className="text-zinc-400 dark:text-zinc-500 text-sm italic animate-pulse">Refilling...</div>
       )}
     </div>
   );

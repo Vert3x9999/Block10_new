@@ -1,4 +1,5 @@
 
+
 type Lang = 'zh' | 'en';
 
 const translations: Record<Lang, Record<string, string>> = {
@@ -63,6 +64,7 @@ const translations: Record<Lang, Record<string, string>> = {
     checkIn: 'Check In',
     collect: 'Collect',
     confirmClearHistory: 'Are you sure you want to clear your score history?',
+    clear: 'Clear',
     crowns: 'Crowns',
     
     // Worlds & Chapters
@@ -162,6 +164,7 @@ const translations: Record<Lang, Record<string, string>> = {
     checkIn: '簽到',
     collect: '領取',
     confirmClearHistory: '確定要清除所有歷史紀錄嗎？',
+    clear: '清除',
     crowns: '皇冠',
     
     // Worlds & Chapters

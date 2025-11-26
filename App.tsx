@@ -55,10 +55,20 @@ const App: React.FC = () => {
      return (localStorage.getItem('blockfit-lang') as 'zh' | 'en') || 'zh';
   });
 
+  // Apply Theme to HTML Root
   useEffect(() => {
+     const root = document.documentElement;
+     if (theme === 'dark') {
+       root.classList.add('dark');
+     } else {
+       root.classList.remove('dark');
+     }
      localStorage.setItem('blockfit-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
      localStorage.setItem('blockfit-lang', lang);
-  }, [theme, lang]);
+  }, [lang]);
 
   // --- Game State ---
   const [grid, setGrid] = useState<GridType>(createEmptyGrid());
@@ -271,7 +281,6 @@ const App: React.FC = () => {
 
   const elapsedSeconds = Math.max(0, Math.floor((currentTime - onlineRewardStartTime) / 1000));
   const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-  // Reward: 1 coin per minute. If >= 60 min, bonus +90 (Total 150 for 60m)
   const baseReward = elapsedMinutes;
   const bonusReward = elapsedMinutes >= 60 ? 90 : 0;
   const totalOnlineReward = baseReward + bonusReward;
@@ -359,10 +368,7 @@ const App: React.FC = () => {
     setGameMode(mode);
     setCurrentLevel(level || null);
     setMovesLeft(level ? level.maxMoves : 0);
-    
-    // Reset Infinite Inventory
     setInfiniteInventory({ hints: 3, undos: 3, refreshes: 3, rotators: 3, coins: 0, revives: 0 });
-    
     setGrid(createEmptyGrid());
     setScore(0);
     setIsGameOver(false);
@@ -379,13 +385,10 @@ const App: React.FC = () => {
     setShowRevivePrompt(false);
     dragInfoRef.current = null;
     setIsDragging(false);
-    
-    // Ensure overlays are closed
     setShowResetConfirm(false);
     setShowDailyReward(false);
     setShowShop(false);
     setShowInventory(false);
-    
     setView('game');
   };
 
@@ -393,18 +396,15 @@ const App: React.FC = () => {
      const today = new Date().toDateString();
      if (lastCheckIn !== today) {
         const streak = checkInHistory.length;
-        const dayInCycle = (streak % 7) + 1; // 1 to 7
+        const dayInCycle = (streak % 7) + 1; 
 
         const rewards: string[] = [];
-        
         if (dayInCycle === 7) {
-            // Day 7: Big Reward
             updateGlobalInventory('revives', 1);
             rewards.push(`+1 ${t('revive')}`);
             updateGlobalInventory('coins', 200);
             rewards.push(`+200 ${t('coins')}`);
         } else {
-            // Normal Days
             const rand = Math.random();
             if (rand < 0.25) { updateGlobalInventory('hints', 1); rewards.push(`+1 ${t('hint')}`); }
             else if (rand < 0.5) { updateGlobalInventory('undos', 1); rewards.push(`+1 ${t('undo')}`); }
@@ -426,9 +426,9 @@ const App: React.FC = () => {
       if (inventory.coins >= price) {
           updateGlobalInventory('coins', -price);
           updateGlobalInventory(item as keyof Inventory, 1);
-          playLevelWinSound(); // Ca-ching!
+          playLevelWinSound(); 
       } else {
-          playLevelFailSound(); // Error sound
+          playLevelFailSound(); 
       }
   };
   
@@ -438,21 +438,16 @@ const App: React.FC = () => {
           setMovesLeft(prev => prev + 7);
           generateNewShapes();
           setShowRevivePrompt(false);
-          playLevelWinSound(); // Resurrection sound
+          playLevelWinSound(); 
       }
   };
 
   const processLevelWin = (crowns: number) => {
       if (!currentLevel) return;
-      
       const levelNum = parseInt(currentLevel.label);
       const rewards: string[] = [];
       let coinsEarned = currentLevel.coinReward || 0;
-      
-      // Always give coins for clearing
       updateGlobalInventory('coins', coinsEarned);
-      
-      // Check for One-Time Rewards (every 5 levels)
       if (!claimedLevelRewards.includes(currentLevel.id)) {
           if (levelNum % 5 === 0) {
              updateGlobalInventory('refreshes', 1);
@@ -464,37 +459,33 @@ const App: React.FC = () => {
              }
           }
       }
-      
       setLevelResult({ success: true, crowns, rewards: rewards.length > 0 ? rewards : undefined, coinsEarned });
       saveLevelProgress(currentLevel.id, crowns);
       playLevelWinSound();
   };
 
-  // --- Initialization ---
+  // --- Game Loop Effects ---
   useEffect(() => {
     if (view === 'game' && availableShapes.length === 0 && !isGameOver && !levelResult && !showRevivePrompt) {
       generateNewShapes();
     }
   }, [view, availableShapes, isGameOver, levelResult, showRevivePrompt, generateNewShapes]);
 
-  // --- Game Over Check ---
   useEffect(() => {
     if (view !== 'game' || isGameOver || levelResult || showRevivePrompt) return;
     
-    // Level Mode: Check Moves
     if (gameMode === 'level' && currentLevel && movesLeft <= 0 && !clearingLines) {
         const crowns = calculateCrowns(score, currentLevel.targetScore);
         if (crowns >= 1) {
             processLevelWin(crowns);
         } else {
-            setShowRevivePrompt(true); // Prompt Revive instead of immediate fail
+            setShowRevivePrompt(true);
         }
         return;
     }
 
     if (availableShapes.length === 0 && !clearingLines) return;
 
-    // Standard Grid Lock Check
     if (availableShapes.length > 0 && !clearingLines) {
       const matrices = availableShapes.map(s => s.matrix);
       const over = checkGameOver(grid, matrices);
@@ -508,15 +499,14 @@ const App: React.FC = () => {
            if (crowns >= 1) {
               processLevelWin(crowns);
            } else {
-              setShowRevivePrompt(true); // Prompt Revive
+              setShowRevivePrompt(true);
            }
         }
       }
     }
   }, [view, availableShapes, grid, clearingLines, isGameOver, score, gameMode, currentLevel, levelResult, movesLeft, showRevivePrompt]);
 
-
-  // --- Core Placement Logic ---
+  // --- Interaction Logic ---
   const attemptPlaceShape = useCallback((shapeIdx: number, r: number, c: number) => {
     if (clearingLines || levelResult || showRevivePrompt) return;
     
@@ -532,7 +522,6 @@ const App: React.FC = () => {
       setHistory(prev => [...prev, currentState]);
       setHint(null);
 
-      // Decrement Moves in Level Mode
       if (gameMode === 'level') {
          setMovesLeft(prev => Math.max(0, prev - 1));
       }
@@ -548,14 +537,12 @@ const App: React.FC = () => {
       setPlacedAnimationCells(justPlaced);
       setTimeout(() => setPlacedAnimationCells([]), 400);
 
-      // Placement Score REMOVED
+      // Score logic: 0 for placement, only clear points
       let newScore = score;
-
       const { rowIndices, colIndices } = findClearedLines(newGrid);
 
       if (rowIndices.length > 0 || colIndices.length > 0) {
         const newCombo = comboCount + 1;
-        // STREAK UPDATE: Increment streak on clear
         const newStreak = streak + 1;
         setComboCount(newCombo);
         setStreak(newStreak);
@@ -573,49 +560,37 @@ const App: React.FC = () => {
           setGrid(clearedGrid);
           
           const totalLines = rowIndices.length + colIndices.length;
-          // SCORE UPDATE: Base 2000 + Streak Bonus
           const baseLineBonus = (totalLines * 2000) + (totalLines > 1 ? (totalLines - 1) * 1000 : 0);
           const comboMultiplier = newCombo;
           const streakMultiplier = 1 + (newStreak * 0.1); 
-          
           const multipliedBonus = Math.floor(baseLineBonus * comboMultiplier * streakMultiplier);
-          
           const finalNewScore = newScore + multipliedBonus;
           setScore(finalNewScore);
           setClearingLines(null);
           
-          // Instant Win Check (3 Crowns)
           if (gameMode === 'level' && currentLevel) {
             const crowns = calculateCrowns(finalNewScore, currentLevel.targetScore);
-            if (crowns === 3) {
-              processLevelWin(3);
-            }
+            if (crowns === 3) processLevelWin(3);
           }
-
         }, 400);
       } else {
         setComboCount(0);
-        // STREAK UPDATE: Reset streak on no clear
         setStreak(0);
-        
         playPlaceSound();
         setGrid(newGrid);
-        setScore(newScore); // Score remains same
+        // newScore remains score (0 placement points)
+        setScore(newScore); 
         const nextShapes = availableShapes.filter((_, idx) => idx !== shapeIdx);
         setAvailableShapes(nextShapes);
         
-        // Check win even without score change (e.g. if target was 0, unlikely but safe)
         if (gameMode === 'level' && currentLevel) {
             const crowns = calculateCrowns(newScore, currentLevel.targetScore);
-            if (crowns === 3) {
-              processLevelWin(3);
-            }
+            if (crowns === 3) processLevelWin(3);
         }
       }
     }
   }, [grid, availableShapes, clearingLines, score, comboCount, streak, isGameOver, gameMode, currentLevel, levelResult, movesLeft, showRevivePrompt]);
 
-  // --- Interaction Handlers ---
   const handleSelectShape = (index: number) => {
     if (isGameOver || showResetConfirm || clearingLines || levelResult || showRevivePrompt) return;
     setHint(null);
@@ -647,7 +622,7 @@ const App: React.FC = () => {
     if (gridRef.current) {
       gridCellSize = gridRef.current.getBoundingClientRect().width / BOARD_SIZE;
     } else {
-      gridCellSize = 35; // Fallback
+      gridCellSize = 35;
     }
 
     const isTouch = e.pointerType === 'touch';
@@ -776,7 +751,6 @@ const App: React.FC = () => {
     if (!isDragging) setSelectedShapeIdx(null);
   };
 
-  // --- Tool Actions ---
   const handleUndo = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (history.length === 0 || clearingLines || showResetConfirm || levelResult || showRevivePrompt) return;
@@ -814,13 +788,10 @@ const App: React.FC = () => {
     if (isGameOver || showResetConfirm || clearingLines || levelResult || showRevivePrompt) return;
     if (selectedShapeIdx === null) return;
     if (getCurrentInventory('rotators') <= 0) return;
-
     playShuffleSound(); 
-    
     const newShapes = [...availableShapes];
     const shape = newShapes[selectedShapeIdx];
     shape.matrix = rotateShapeMatrix(shape.matrix);
-    
     setAvailableShapes(newShapes);
     useInventoryItem('rotators');
     setHint(null);
@@ -837,8 +808,6 @@ const App: React.FC = () => {
     }
   };
 
-  // --- View Rendering ---
-
   const renderHome = () => {
     const today = new Date().toDateString();
     const isCheckedIn = lastCheckIn === today;
@@ -849,21 +818,21 @@ const App: React.FC = () => {
         <div className="absolute top-4 left-4 flex gap-2">
            <button 
              onClick={() => setLang(l => l === 'en' ? 'zh' : 'en')}
-             className="bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 p-2 rounded-xl transition-all border border-slate-200/50 dark:border-slate-700/50 shadow-sm backdrop-blur-md"
+             className="bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 p-2 rounded-xl transition-all border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm backdrop-blur-md"
              title="Switch Language"
            >
              <Languages size={20} />
            </button>
            <button 
              onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-             className="bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-yellow-500 dark:text-yellow-400 p-2 rounded-xl transition-all border border-slate-200/50 dark:border-slate-700/50 shadow-sm backdrop-blur-md"
+             className="bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-yellow-500 dark:text-yellow-400 p-2 rounded-xl transition-all border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm backdrop-blur-md"
              title="Toggle Theme"
            >
              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
            </button>
         </div>
 
-        {/* Online Reward Button (Top Right) */}
+        {/* Online Reward Button */}
         <button 
            onClick={handleClaimOnlineReward}
            disabled={totalOnlineReward <= 0}
@@ -898,7 +867,7 @@ const App: React.FC = () => {
           <h1 className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 drop-shadow-lg dark:drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]">
             Block10
           </h1>
-          <p className="dark:text-slate-400 text-slate-500 text-sm tracking-[0.3em] uppercase font-semibold">
+          <p className="dark:text-zinc-400 text-zinc-500 text-sm tracking-[0.3em] uppercase font-semibold">
             10x10 Puzzle
           </p>
         </div>
@@ -906,7 +875,7 @@ const App: React.FC = () => {
         {/* Inventory Dashboard Button */}
         <button 
           onClick={() => setShowInventory(true)}
-          className="w-full max-w-xs bg-white/70 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-800 transition-all p-3 rounded-xl border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md grid grid-cols-3 gap-2 text-xs font-mono mb-2 group active:scale-95 shadow-sm hover:shadow-md"
+          className="w-full max-w-xs bg-white/70 dark:bg-zinc-900/60 hover:bg-white dark:hover:bg-zinc-800 transition-all p-3 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-md grid grid-cols-3 gap-2 text-xs font-mono mb-2 group active:scale-95 shadow-sm hover:shadow-md"
         >
             <div className="flex flex-col items-center gap-1 text-yellow-600 dark:text-yellow-500 group-hover:scale-110 transition-transform">
                 <Coins size={16} />
@@ -953,14 +922,14 @@ const App: React.FC = () => {
             </button>
             <button 
               onClick={() => setView('leaderboard')}
-              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm"
+              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-700 transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm"
             >
               <History size={20} className="text-yellow-500 dark:text-yellow-500" />
               {t('records')}
             </button>
             <button 
               onClick={() => setView('souvenirs')}
-              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm"
+              className="group flex flex-col items-center justify-center gap-1 py-3 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-700 transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm"
             >
               <Package size={20} className="text-pink-500" />
               {t('souvenirs')}
@@ -973,7 +942,7 @@ const App: React.FC = () => {
               relative group flex items-center justify-center gap-3 w-full py-3 rounded-xl font-bold text-sm border transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-sm
               ${!isCheckedIn 
                 ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white border-transparent shadow-green-500/20' 
-                : 'bg-white/60 dark:bg-slate-900/60 text-slate-500 border-slate-200 dark:border-slate-800'}
+                : 'bg-white/60 dark:bg-zinc-900/60 text-zinc-500 border-zinc-200 dark:border-zinc-800'}
             `}
           >
             <Calendar size={18} />
@@ -982,20 +951,19 @@ const App: React.FC = () => {
                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
             )}
           </button>
-
         </div>
 
-        <div className="absolute bottom-4 text-slate-400 dark:text-slate-600 text-[10px] font-mono opacity-60">
+        <div className="absolute bottom-4 text-zinc-400 dark:text-zinc-600 text-[10px] font-mono opacity-60">
           Author: Vertex Wei
         </div>
 
-        {/* Inventory Detail Modal */}
+        {/* Inventory Modal */}
         {showInventory && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+             <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
                 <div className="flex justify-between w-full items-center mb-2">
-                   <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><Backpack className="text-blue-500" /> {t('myInventory')}</h2>
-                   <button onClick={() => setShowInventory(false)}><X className="text-slate-500 hover:text-slate-900 dark:hover:text-white" /></button>
+                   <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Backpack className="text-blue-500" /> {t('myInventory')}</h2>
+                   <button onClick={() => setShowInventory(false)}><X className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white" /></button>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -1007,14 +975,14 @@ const App: React.FC = () => {
                       { icon: Shuffle, color: 'text-green-600 dark:text-green-500', label: 'shuffle', val: inventory.refreshes },
                       { icon: RefreshCw, color: 'text-purple-600 dark:text-purple-500', label: 'rotate', val: inventory.rotators },
                     ].map((item, i) => (
-                      <div key={i} className="bg-slate-50/80 dark:bg-slate-800/80 p-3 rounded-2xl flex items-center justify-between border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                      <div key={i} className="bg-zinc-50/80 dark:bg-zinc-800/80 p-3 rounded-2xl flex items-center justify-between border border-zinc-100 dark:border-zinc-700/50 shadow-sm">
                          <div className={`flex items-center gap-2 ${item.color} font-bold`}><item.icon size={20} /> {t(item.label)}</div>
-                         <span className="text-xl font-mono text-slate-800 dark:text-slate-200">{item.val}</span>
+                         <span className="text-xl font-mono text-zinc-800 dark:text-zinc-200">{item.val}</span>
                       </div>
                     ))}
                 </div>
 
-                <button onClick={() => setShowInventory(false)} className="mt-2 w-full py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold transition-colors">{t('close')}</button>
+                <button onClick={() => setShowInventory(false)} className="mt-2 w-full py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 rounded-xl font-bold transition-colors">{t('close')}</button>
              </div>
           </div>
         )}
@@ -1022,10 +990,10 @@ const App: React.FC = () => {
         {/* Shop Modal */}
         {showShop && (
            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-              <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+              <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
                  <div className="flex justify-between w-full items-center">
-                   <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><ShoppingBag className="text-yellow-500" /> {t('shop')}</h2>
-                   <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 font-mono text-sm bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                   <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2"><ShoppingBag className="text-yellow-500" /> {t('shop')}</h2>
+                   <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 font-mono text-sm bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
                       <Coins size={14} /> {inventory.coins}
                    </div>
                  </div>
@@ -1034,16 +1002,16 @@ const App: React.FC = () => {
                         <button 
                             key={item}
                             onClick={() => handleBuyItem(item as keyof typeof SHOP_PRICES)}
-                            className="bg-slate-50/80 hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-700 p-3 rounded-2xl flex flex-col items-center gap-2 border border-slate-200 dark:border-slate-700/50 active:scale-95 transition-all shadow-sm"
+                            className="bg-zinc-50/80 hover:bg-zinc-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-700 p-3 rounded-2xl flex flex-col items-center gap-2 border border-zinc-200 dark:border-zinc-700/50 active:scale-95 transition-all shadow-sm"
                         >
-                            <div className="capitalize text-sm font-bold text-slate-800 dark:text-white">{t(item === 'refreshes' ? 'shuffle' : item === 'rotators' ? 'rotate' : item.slice(0, -1))}</div>
+                            <div className="capitalize text-sm font-bold text-zinc-800 dark:text-white">{t(item === 'refreshes' ? 'shuffle' : item === 'rotators' ? 'rotate' : item.slice(0, -1))}</div>
                             <div className="text-xs text-yellow-600 dark:text-yellow-500 flex items-center gap-1">
                                 <Coins size={12}/> {price}
                             </div>
                         </button>
                     ))}
                  </div>
-                 <button onClick={() => setShowShop(false)} className="mt-2 w-full py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold transition-colors">{t('close')}</button>
+                 <button onClick={() => setShowShop(false)} className="mt-2 w-full py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 rounded-xl font-bold transition-colors">{t('close')}</button>
               </div>
            </div>
         )}
@@ -1051,10 +1019,10 @@ const App: React.FC = () => {
         {/* Calendar Modal */}
         {showCalendar && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-6 rounded-3xl flex flex-col items-center gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+             <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 p-6 rounded-3xl flex flex-col items-center gap-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
                 <div className="flex justify-between w-full items-center">
-                   <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><Calendar className="text-green-500" /> {t('dailyRewards')}</h2>
-                   <button onClick={() => setShowCalendar(false)}><X className="text-slate-500 hover:text-slate-900 dark:hover:text-white" /></button>
+                   <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Calendar className="text-green-500" /> {t('dailyRewards')}</h2>
+                   <button onClick={() => setShowCalendar(false)}><X className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white" /></button>
                 </div>
                 
                 <div className="grid grid-cols-7 gap-2 w-full">
@@ -1069,12 +1037,12 @@ const App: React.FC = () => {
                     return (
                       <div key={i} className={`
                         aspect-square rounded-lg flex flex-col items-center justify-center text-xs border relative transition-all
-                        ${isToday ? 'border-green-500 bg-green-500/10' : 'border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30'}
+                        ${isToday ? 'border-green-500 bg-green-500/10' : 'border-zinc-200 dark:border-zinc-700/50 bg-zinc-50/50 dark:bg-zinc-800/30'}
                         ${isChecked ? 'opacity-50' : ''}
                       `}>
-                         <span className={isToday ? "text-green-600 dark:text-green-400 font-bold" : "text-slate-400 dark:text-slate-600"}>{day}</span>
+                         <span className={isToday ? "text-green-600 dark:text-green-400 font-bold" : "text-zinc-400 dark:text-zinc-600"}>{day}</span>
                          {isBigReward && <Gift size={12} className="text-yellow-500 mt-1" />}
-                         {!isBigReward && !isChecked && <Coins size={10} className="text-slate-400 dark:text-slate-600 mt-1" />}
+                         {!isBigReward && !isChecked && <Coins size={10} className="text-zinc-400 dark:text-zinc-600 mt-1" />}
                          {isChecked && <CheckCircle2 size={12} className="text-green-500 mt-1" />}
                       </div>
                     )
@@ -1100,10 +1068,10 @@ const App: React.FC = () => {
         {/* Daily Reward Collect Overlay */}
         {showDailyReward && (
           <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-8 rounded-3xl flex flex-col items-center gap-4 max-w-xs text-center shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
+             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-8 rounded-3xl flex flex-col items-center gap-4 max-w-xs text-center shadow-2xl animate-in zoom-in-95 backdrop-blur-xl">
                 <Gift size={48} className="text-green-500 animate-bounce" />
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">{t('dailyRewards')}!</h2>
-                <div className="flex flex-col gap-2 bg-slate-100 dark:bg-slate-800 w-full p-4 rounded-xl">
+                <h2 className="text-2xl font-black text-zinc-900 dark:text-white">{t('dailyRewards')}!</h2>
+                <div className="flex flex-col gap-2 bg-zinc-100 dark:bg-zinc-800 w-full p-4 rounded-xl">
                    {dailyRewardItems.map((item, i) => (
                       <div key={i} className="font-bold text-yellow-600 dark:text-yellow-400">{item}</div>
                    ))}
@@ -1124,16 +1092,15 @@ const App: React.FC = () => {
   const renderWorldSelect = () => (
     <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
       <div className="w-full flex items-center justify-between mb-8">
-        <button onClick={() => setView('home')} className="p-2 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm backdrop-blur-sm">
+        <button onClick={() => setView('home')} className="p-2 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
           <ArrowLeft size={24} />
         </button>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('selectWorld')}</h2>
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('selectWorld')}</h2>
         <div className="w-10"></div>
       </div>
 
       <div className="flex flex-col gap-6 w-full">
         {WORLDS.map(world => {
-          // Calculate progress for world
           const chaptersInWorld = CHAPTERS.filter(c => world.chapterIds.includes(c.id));
           let totalCrowns = 0;
           let maxCrowns = 0;
@@ -1154,23 +1121,23 @@ const App: React.FC = () => {
                 setCurrentWorldId(world.id);
                 setView('chapter-select');
               }}
-              className="group relative flex flex-col gap-4 p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/50 dark:to-slate-900/80 border border-indigo-100 dark:border-indigo-500/30 hover:border-indigo-400 rounded-3xl text-left transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl overflow-hidden backdrop-blur-sm"
+              className="group relative flex flex-col gap-4 p-6 bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 rounded-3xl text-left transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl overflow-hidden backdrop-blur-sm"
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                  <Globe2 size={120} className="text-indigo-900 dark:text-white" />
               </div>
               
               <div className="z-10">
-                 <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-1">{t(world.id)}</h3>
+                 <h3 className="text-2xl font-black text-zinc-900 dark:text-white mb-1">{t(world.id)}</h3>
                  <p className="text-indigo-600 dark:text-indigo-200 text-sm opacity-80">{t(world.id + '_desc')}</p>
               </div>
               
-              <div className="z-10 mt-2 bg-white/60 dark:bg-black/40 p-3 rounded-xl backdrop-blur-sm border border-slate-200/50 dark:border-white/5 shadow-sm">
+              <div className="z-10 mt-2 bg-zinc-100 dark:bg-black/40 p-3 rounded-xl backdrop-blur-sm border border-zinc-200/50 dark:border-white/5 shadow-sm">
                  <div className="flex justify-between items-center text-xs font-bold mb-1">
                     <span className="text-yellow-600 dark:text-yellow-500 flex items-center gap-1"><Crown size={12}/> {t('crowns')}</span>
-                    <span className="text-slate-800 dark:text-white">{totalCrowns} / {maxCrowns}</span>
+                    <span className="text-zinc-800 dark:text-white">{totalCrowns} / {maxCrowns}</span>
                  </div>
-                 <div className="h-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                 <div className="h-2 bg-zinc-200 dark:bg-zinc-700/50 rounded-full overflow-hidden">
                     <div className="h-full bg-yellow-500 transition-all duration-1000" style={{ width: `${progress}%` }} />
                  </div>
               </div>
@@ -1182,17 +1149,16 @@ const App: React.FC = () => {
   );
 
   const renderChapterSelect = () => {
-    // Filter chapters by current world
     const world = WORLDS.find(w => w.id === currentWorldId);
     const displayedChapters = CHAPTERS.filter(c => world?.chapterIds.includes(c.id));
 
     return (
       <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
         <div className="w-full flex items-center justify-between mb-4">
-          <button onClick={() => setView('world-select')} className="p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm backdrop-blur-sm">
+          <button onClick={() => setView('world-select')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
             <ArrowLeft size={24} />
           </button>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{world ? t(world.id) : t('selectChapter')}</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white truncate max-w-[200px]">{world ? t(world.id) : t('selectChapter')}</h2>
           <div className="w-10"></div>
         </div>
 
@@ -1209,22 +1175,20 @@ const App: React.FC = () => {
                   setCurrentChapterId(chapter.id);
                   setView('level-select');
                 }}
-                className="relative flex flex-col gap-2 p-6 bg-white/80 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-xl overflow-hidden backdrop-blur-sm"
+                className="relative flex flex-col gap-2 p-6 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/50 rounded-2xl text-left transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-xl overflow-hidden backdrop-blur-sm"
               >
                 <div className="flex justify-between items-start z-10">
                   <div>
-                      <h3 className="text-xl font-black text-slate-900 dark:text-white">{t(chapter.id)}</h3>
-                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t(chapter.id + '_desc')}</p>
+                      <h3 className="text-xl font-black text-zinc-900 dark:text-white">{t(chapter.id)}</h3>
+                      <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">{t(chapter.id + '_desc')}</p>
                   </div>
                   {isComplete && <CheckCircle2 className="text-green-500" size={24} />}
                 </div>
                 
                 <div className="mt-4 flex items-center justify-between text-xs font-bold z-10">
                   <span className="text-purple-600 dark:text-purple-400">15 LEVELS</span>
-                  <span className="text-slate-600 dark:text-slate-500">{unlockedCount} / {totalLevels} {t('completed')}</span>
+                  <span className="text-zinc-600 dark:text-zinc-500">{unlockedCount} / {totalLevels} {t('completed')}</span>
                 </div>
-                
-                {/* Progress Bar Background */}
                 <div className="absolute bottom-0 left-0 h-1 bg-green-500/50" style={{ width: `${(unlockedCount/totalLevels)*100}%` }} />
               </button>
             );
@@ -1241,17 +1205,16 @@ const App: React.FC = () => {
     return (
       <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
         <div className="w-full flex items-center justify-between mb-8">
-          <button onClick={() => setView('chapter-select')} className="p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm backdrop-blur-sm">
+          <button onClick={() => setView('chapter-select')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
             <ArrowLeft size={24} />
           </button>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate">{t(chapter.id)}</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{t(chapter.id)}</h2>
           <div className="w-10"></div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 w-full pb-8">
           {chapter.levels.map((level, i) => {
             const crowns = levelProgress[level.id] || 0;
-            // First level always unlocked. Others unlocked if previous has > 0 crowns.
             const isUnlocked = i === 0 || (levelProgress[chapter.levels[i-1].id] || 0) > 0;
             const isRewardLevel = (i + 1) % 5 === 0;
             
@@ -1263,18 +1226,16 @@ const App: React.FC = () => {
                 className={`
                   relative aspect-square flex flex-col items-center justify-center rounded-2xl border-2 transition-all overflow-hidden shadow-sm hover:shadow-md
                   ${isUnlocked 
-                    ? 'bg-white/80 dark:bg-slate-800/60 border-slate-200/50 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-700 active:scale-95 backdrop-blur-sm' 
-                    : 'bg-slate-100/50 dark:bg-slate-900/30 border-slate-200/50 dark:border-slate-800/50 opacity-50 cursor-not-allowed'}
+                    ? 'bg-white/80 dark:bg-zinc-800/60 border-zinc-200/50 dark:border-zinc-700/50 hover:bg-white dark:hover:bg-zinc-700 active:scale-95 backdrop-blur-sm' 
+                    : 'bg-zinc-100/50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-50 cursor-not-allowed'}
                 `}
               >
-                {/* Reward Indicator */}
                 {isRewardLevel && (
                    <div className="absolute top-0 right-0 p-1">
-                      <Gift size={12} className={crowns > 0 ? "text-slate-400 dark:text-slate-600" : "text-green-500 animate-pulse"} />
+                      <Gift size={12} className={crowns > 0 ? "text-zinc-400 dark:text-zinc-600" : "text-green-500 animate-pulse"} />
                    </div>
                 )}
                 
-                {/* Coin Reward Label */}
                 {isUnlocked && (
                   <div className="absolute bottom-1 flex items-center gap-0.5 text-[9px] text-yellow-600 dark:text-yellow-500">
                      <Coins size={8} /> {level.coinReward}
@@ -1282,16 +1243,16 @@ const App: React.FC = () => {
                 )}
 
                 {!isUnlocked ? (
-                  <Lock size={24} className="text-slate-400 dark:text-slate-600" />
+                  <Lock size={24} className="text-zinc-400 dark:text-zinc-600" />
                 ) : (
                   <>
-                    <span className="text-2xl font-black text-slate-800 dark:text-slate-200">{level.label}</span>
+                    <span className="text-2xl font-black text-zinc-800 dark:text-zinc-200">{level.label}</span>
                     <div className="flex gap-0.5 mt-1 mb-2">
                       {[1, 2, 3].map(c => (
                         <Crown 
                           key={c} 
                           size={12} 
-                          className={c <= crowns ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600'} 
+                          className={c <= crowns ? 'text-yellow-500 fill-yellow-500' : 'text-zinc-300 dark:text-zinc-600'} 
                         />
                       ))}
                     </div>
@@ -1305,6 +1266,58 @@ const App: React.FC = () => {
     );
   };
 
+  const renderLeaderboard = () => (
+    <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
+      <div className="w-full flex items-center justify-between mb-8">
+        <button onClick={() => setView('home')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
+          <ArrowLeft size={24} />
+        </button>
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('records')}</h2>
+        <div className="w-10"></div>
+      </div>
+
+      <div className="w-full bg-white/70 dark:bg-zinc-900/50 rounded-xl p-6 mb-4 border border-zinc-200 dark:border-zinc-800 shadow-sm backdrop-blur-sm flex flex-col gap-4 h-[70vh]">
+          <div className="flex justify-between items-center mb-2">
+             <h3 className="font-bold text-zinc-700 dark:text-zinc-300">{t('myBestScores')}</h3>
+             {leaderboard.length > 0 && (
+                <button onClick={clearLeaderboard} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
+                   <Trash2 size={12} /> {t('clear')}
+                </button>
+             )}
+          </div>
+          
+          <div className="flex-1 overflow-y-auto visible-scrollbar pr-2">
+             {leaderboard.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-600 italic">
+                   <History size={48} className="mb-2 opacity-20" />
+                   {t('noGamesYet')}
+                </div>
+             ) : (
+                <div className="flex flex-col gap-2">
+                   {leaderboard.map((record, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
+                         <div className="flex items-center gap-3">
+                            <span className={`
+                               w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
+                               ${i === 0 ? 'bg-yellow-100 text-yellow-600' : i === 1 ? 'bg-zinc-200 text-zinc-600' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-transparent text-zinc-400'}
+                            `}>
+                               {i + 1}
+                            </span>
+                            <div className="flex flex-col">
+                               <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">{record.score.toLocaleString()}</span>
+                               <span className="text-[10px] text-zinc-400">{new Date(record.timestamp).toLocaleDateString()}</span>
+                            </div>
+                         </div>
+                         {i === 0 && <Crown size={16} className="text-yellow-500" />}
+                      </div>
+                   ))}
+                </div>
+             )}
+          </div>
+      </div>
+    </div>
+  );
+
   const renderSouvenirs = () => {
     const totalSouvenirs = SOUVENIRS.length;
     const unlockedCount = unlockedSouvenirs.length;
@@ -1312,29 +1325,26 @@ const App: React.FC = () => {
 
     return (
       <div className={`flex flex-col items-center h-screen overflow-hidden p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
-        {/* Header Section (Fixed) */}
         <div className="w-full flex-none">
             <div className="w-full flex items-center justify-between mb-6">
-                <button onClick={() => setView('home')} className="p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm backdrop-blur-sm">
+                <button onClick={() => setView('home')} className="p-2 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-lg text-zinc-500 dark:text-zinc-400 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 shadow-sm backdrop-blur-sm">
                     <ArrowLeft size={24} />
                 </button>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('collection')}</h2>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('collection')}</h2>
                 <div className="w-10"></div>
             </div>
 
-            {/* Collection Progress */}
-            <div className="w-full bg-white/70 dark:bg-slate-900/50 rounded-xl p-4 mb-4 border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur-sm">
+            <div className="w-full bg-white/70 dark:bg-zinc-900/50 rounded-xl p-4 mb-4 border border-zinc-200 dark:border-zinc-800 shadow-sm backdrop-blur-sm">
                 <div className="flex justify-between text-xs font-bold mb-2">
-                    <span className="text-slate-500 dark:text-slate-400">{t('totalProgress')}</span>
+                    <span className="text-zinc-500 dark:text-zinc-400">{t('totalProgress')}</span>
                     <span className="text-pink-500 dark:text-pink-400">{progress}%</span>
                 </div>
-                <div className="h-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                <div className="h-2 bg-zinc-200 dark:bg-zinc-700/50 rounded-full overflow-hidden">
                     <div className="h-full bg-pink-500 transition-all duration-1000" style={{width: `${progress}%`}} />
                 </div>
             </div>
         </div>
 
-        {/* Scrollable Content */}
         <div className="flex-1 w-full overflow-y-auto visible-scrollbar pb-24">
             <div className="grid grid-cols-2 gap-4">
                 {SOUVENIRS.map(souvenir => {
@@ -1348,27 +1358,25 @@ const App: React.FC = () => {
                             className={`
                                 relative flex flex-col items-center justify-center p-4 rounded-3xl border transition-all duration-300 group aspect-[4/5]
                                 ${isUnlocked 
-                                    ? 'bg-white/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 shadow-md backdrop-blur-sm' 
-                                    : 'bg-slate-100/50 dark:bg-slate-900/30 border-slate-200/50 dark:border-slate-800/50 opacity-80 cursor-default'}
+                                    ? 'bg-white/80 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700/50 hover:bg-white dark:hover:bg-zinc-750 hover:border-zinc-300 dark:hover:border-zinc-600 shadow-md backdrop-blur-sm' 
+                                    : 'bg-zinc-100/50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-80 cursor-default'}
                             `}
                         >
                             <div className={`
                                 w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300
-                                ${isUnlocked ? 'bg-slate-50 dark:bg-slate-950 shadow-inner ring-1 ring-black/5 dark:ring-white/10' : 'bg-slate-200 dark:bg-slate-950'}
+                                ${isUnlocked ? 'bg-zinc-50 dark:bg-zinc-950 shadow-inner ring-1 ring-black/5 dark:ring-white/10' : 'bg-zinc-200 dark:bg-zinc-950'}
                             `}>
                                 {isUnlocked ? (
                                     <Icon size={32} color={souvenir.color} className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
                                 ) : (
                                     <div className="relative">
-                                        <Icon size={32} className="text-slate-400 dark:text-slate-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
-                                        <HelpCircle size={20} className="absolute inset-0 m-auto text-slate-500 dark:text-slate-700" />
+                                        <Icon size={32} className="text-zinc-400 dark:text-zinc-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.1)] blur-[1px]" />
+                                        <HelpCircle size={20} className="absolute inset-0 m-auto text-zinc-500 dark:text-zinc-700" />
                                     </div>
                                 )}
                             </div>
                             {isUnlocked && <div className="absolute top-3 right-3 text-yellow-500"><Star size={12} fill="currentColor"/></div>}
-                            
-                            {/* Souvenir Name Label */}
-                            <div className={`mt-2 text-xs font-bold text-center px-1 line-clamp-2 ${isUnlocked ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600'}`}>
+                            <div className={`mt-2 text-xs font-bold text-center px-1 line-clamp-2 ${isUnlocked ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-600'}`}>
                                 {isUnlocked ? t(souvenir.id) : '???'}
                             </div>
                         </button>
@@ -1377,28 +1385,23 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Premium Souvenir Detail Modal */}
         {selectedSouvenir && (
            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in">
-              <div className="relative bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 mx-4 overflow-hidden backdrop-blur-xl">
-                 
-                 {/* Background Glow */}
+              <div className="relative bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-600 p-8 rounded-3xl flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 mx-4 overflow-hidden backdrop-blur-xl">
                  <div 
                    className="absolute -top-20 -left-20 w-40 h-40 rounded-full blur-[80px] opacity-30 pointer-events-none"
                    style={{ backgroundColor: unlockedSouvenirs.includes(selectedSouvenir.id) ? selectedSouvenir.color : '#000' }}
                  />
-
-                 <button onClick={() => setSelectedSouvenir(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 dark:hover:text-white z-10">
+                 <button onClick={() => setSelectedSouvenir(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-800 dark:hover:text-white z-10">
                     <X size={24} />
                  </button>
-
                  {(() => {
                     const isUnlocked = unlockedSouvenirs.includes(selectedSouvenir.id);
                     const Icon = IconMap[selectedSouvenir.icon] || Box;
                     return (
                        <>
                           <div className={`
-                             w-32 h-32 rounded-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 shadow-2xl ring-4 ring-slate-100 dark:ring-slate-800
+                             w-32 h-32 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 shadow-2xl ring-4 ring-zinc-100 dark:ring-zinc-800
                              ${!isUnlocked ? 'grayscale opacity-50' : ''}
                           `}>
                              <Icon 
@@ -1407,19 +1410,17 @@ const App: React.FC = () => {
                                className={isUnlocked ? 'drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]' : ''} 
                              />
                           </div>
-
                           <div className="text-center space-y-2 z-10">
-                             <h2 className="text-2xl font-black text-slate-900 dark:text-white">{isUnlocked ? t(selectedSouvenir.id) : t('unknownArtifact')}</h2>
-                             <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                             <h2 className="text-2xl font-black text-zinc-900 dark:text-white">{isUnlocked ? t(selectedSouvenir.id) : t('unknownArtifact')}</h2>
+                             <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">
                                 {isUnlocked ? t(selectedSouvenir.id + '_desc') : t('lockedDesc')}
                              </p>
                           </div>
-                          
-                          <div className="w-full pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-center">
+                          <div className="w-full pt-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-center">
                              {isUnlocked ? (
                                 <span className="text-green-600 dark:text-green-500 font-bold flex items-center gap-2 text-sm"><CheckCircle2 size={16}/> {t('acquired')}</span>
                              ) : (
-                                <span className="text-slate-500 font-bold flex items-center gap-2 text-sm"><Lock size={16}/> {t('locked')}</span>
+                                <span className="text-zinc-500 font-bold flex items-center gap-2 text-sm"><Lock size={16}/> {t('locked')}</span>
                              )}
                           </div>
                        </>
@@ -1436,7 +1437,6 @@ const App: React.FC = () => {
     const historicalBest = leaderboard.length > 0 ? leaderboard[0].score : 0;
     const currentBestScore = Math.max(score, historicalBest);
     
-    // Level Mode HUD calculation
     const isLevelMode = gameMode === 'level' && currentLevel;
     const target1 = isLevelMode ? currentLevel.targetScore : 0;
     const target2 = target1 * 1.5;
@@ -1483,28 +1483,27 @@ const App: React.FC = () => {
         className={`flex flex-col items-center justify-center min-h-screen p-4 w-full max-w-lg mx-auto relative z-10`}
         onClick={handleBackgroundClick}
       >
-        {/* Header */}
         <div className="w-full grid grid-cols-[auto_1fr_auto] items-center mb-8 gap-4">
           <div className="flex items-center gap-2 justify-self-start">
              <button 
                 onClick={() => setShowResetConfirm(true)}
-                className="p-3 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors border border-slate-200 dark:border-slate-700 shadow-md backdrop-blur-sm"
+                className="p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors border border-zinc-200 dark:border-zinc-700 shadow-md backdrop-blur-sm"
               >
                 <Home size={20} />
               </button>
           </div>
           
           <div className="flex flex-col items-center justify-self-center relative">
-             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">
+             <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-[0.2em] mb-1">
                {isLevelMode ? `${t('level')} ${currentLevel.label}` : t('score')}
              </span>
              <div className="relative">
-                <span className="text-5xl font-mono font-black text-slate-900 dark:text-white tracking-tighter drop-shadow-md leading-none">
+                <span className="text-5xl font-mono font-black text-zinc-900 dark:text-white tracking-tighter drop-shadow-md leading-none">
                   {score.toLocaleString()}
                 </span>
                 {comboCount > 1 && (
                   <div className="absolute -right-12 -top-6 flex flex-col items-start rotate-12">
-                     <div className="bg-yellow-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg ring-2 ring-white/20 whitespace-nowrap">
+                     <div className="bg-yellow-500 text-zinc-950 text-xs font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg ring-2 ring-white/20 whitespace-nowrap">
                         x{comboCount}
                      </div>
                      {streak > 1 && (
@@ -1517,8 +1516,7 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          {/* Right Side Info */}
-          <div className="flex flex-col items-end justify-self-end bg-white/60 dark:bg-slate-900/50 p-2 pr-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-800/50 backdrop-blur-md min-w-[80px] shadow-sm">
+          <div className="flex flex-col items-end justify-self-end bg-white/60 dark:bg-zinc-900/50 p-2 pr-3 pl-4 rounded-xl border border-zinc-200 dark:border-zinc-800/50 backdrop-blur-md min-w-[80px] shadow-sm">
              {isLevelMode ? (
                <div className="flex flex-col items-end">
                  <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 mb-0.5">
@@ -1543,25 +1541,23 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Level Progress Bar */}
         {isLevelMode && (
-          <div className="w-full max-w-[85vw] mb-6 relative h-6 bg-slate-200/50 dark:bg-slate-800/50 rounded-full border border-slate-300 dark:border-slate-700 mt-2 backdrop-blur-sm">
+          <div className="w-full max-w-[85vw] mb-6 relative h-6 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-full border border-zinc-300 dark:border-zinc-700 mt-2 backdrop-blur-sm">
              <div 
                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]"
                style={{ width: `${progressPercent}%` }}
              />
-             {/* Crown Markers */}
              {[1/2, 1.5/2, 1].map((p, i) => {
                 const targetVal = [target1, target2, target3][i];
                 return (
                   <div 
                     key={i} 
-                    className="absolute top-0 bottom-0 w-0.5 bg-slate-400/20 dark:bg-white/20 flex flex-col items-center justify-center overflow-visible"
+                    className="absolute top-0 bottom-0 w-0.5 bg-zinc-400/20 dark:bg-white/20 flex flex-col items-center justify-center overflow-visible"
                     style={{ left: `${p * 100}%` }}
                   >
                     <div className="absolute -top-7 flex flex-col items-center z-10">
-                       <Crown size={16} className={`mb-0.5 drop-shadow-md ${score >= targetVal ? 'text-yellow-500 fill-yellow-500' : 'text-slate-400 dark:text-slate-500'}`} />
-                       <span className="text-[9px] font-mono font-bold text-slate-700 dark:text-white bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-sm">{targetVal}</span>
+                       <Crown size={16} className={`mb-0.5 drop-shadow-md ${score >= targetVal ? 'text-yellow-500 fill-yellow-500' : 'text-zinc-400 dark:text-zinc-500'}`} />
+                       <span className="text-[9px] font-mono font-bold text-zinc-700 dark:text-white bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 shadow-sm">{targetVal}</span>
                     </div>
                   </div>
                 );
@@ -1569,10 +1565,9 @@ const App: React.FC = () => {
           </div>
         )}
   
-        {/* Grid Container */}
         <div 
           ref={gridRef}
-          className="relative bg-white/80 dark:bg-slate-900/80 p-3 rounded-2xl shadow-2xl dark:shadow-black/50 ring-1 ring-slate-200 dark:ring-slate-800 touch-none mb-6 backdrop-blur-sm"
+          className="relative bg-white/80 dark:bg-zinc-900/80 p-3 rounded-2xl shadow-2xl dark:shadow-black/50 ring-1 ring-zinc-200 dark:ring-zinc-800 touch-none mb-6 backdrop-blur-sm"
           onClick={(e) => e.stopPropagation()}
         >
           <div 
@@ -1627,20 +1622,19 @@ const App: React.FC = () => {
             ))}
           </div>
   
-          {/* Level Complete Overlay */}
           {levelResult && levelResult.success && (
-            <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
+            <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
                <div className="flex gap-2 mb-4 animate-pulse">
                   {[1, 2, 3].map(i => (
                     <Crown 
                       key={i} 
                       size={40} 
-                      className={`${i <= levelResult.crowns ? 'text-yellow-500 fill-yellow-500 drop-shadow-glow' : 'text-slate-300 dark:text-slate-700'}`} 
+                      className={`${i <= levelResult.crowns ? 'text-yellow-500 fill-yellow-500 drop-shadow-glow' : 'text-zinc-300 dark:text-zinc-700'}`} 
                     />
                   ))}
                </div>
-               <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">{t('levelCleared')}!</h2>
-               <div className="text-lg text-slate-600 dark:text-slate-300 mb-2 font-mono">{t('score')}: {score.toLocaleString()}</div>
+               <h2 className="text-3xl font-black text-zinc-900 dark:text-white mb-2">{t('levelCleared')}!</h2>
+               <div className="text-lg text-zinc-600 dark:text-zinc-300 mb-2 font-mono">{t('score')}: {score.toLocaleString()}</div>
                {movesLeft > 0 && <div className="text-xs text-blue-500 mb-2">+{(movesLeft * 100).toLocaleString()} {t('moveBonus')}!</div>}
                {levelResult.coinsEarned && (
                   <div className="flex items-center gap-1 text-yellow-500 font-bold mb-4">
@@ -1648,10 +1642,9 @@ const App: React.FC = () => {
                   </div>
                )}
 
-               {/* Rewards Display */}
                {levelResult.rewards && (
-                  <div className="mb-6 bg-slate-100 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 w-full">
-                     <div className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2">{t('rewardsClaimed')}</div>
+                  <div className="mb-6 bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 w-full">
+                     <div className="text-xs font-bold uppercase text-zinc-500 dark:text-zinc-400 mb-2">{t('rewardsClaimed')}</div>
                      <div className="flex flex-col gap-1">
                         {levelResult.rewards.map((r, i) => (
                            <div key={i} className="text-green-600 dark:text-green-400 font-bold flex items-center justify-center gap-2">
@@ -1672,7 +1665,7 @@ const App: React.FC = () => {
                  </button>
                  <button 
                    onClick={() => startNewGame('level', currentLevel)}
-                   className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl font-bold transition-all"
+                   className="flex items-center justify-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-3 rounded-xl font-bold transition-all"
                  >
                    <RotateCw size={18} />
                    {t('replay')}
@@ -1681,12 +1674,11 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Revive Overlay */}
           {showRevivePrompt && (
-              <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-30 animate-in zoom-in-95 duration-300 p-6 text-center">
+              <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-30 animate-in zoom-in-95 duration-300 p-6 text-center">
                   <HeartPulse size={48} className="text-pink-500 animate-pulse mb-4" />
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t('outOfMoves')}!</h2>
-                  <p className="text-slate-600 dark:text-slate-400 mb-6">{t('revivePrompt')}</p>
+                  <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2">{t('outOfMoves')}!</h2>
+                  <p className="text-zinc-600 dark:text-zinc-400 mb-6">{t('revivePrompt')}</p>
                   
                   <div className="flex flex-col gap-3 w-full">
                       <button 
@@ -1698,7 +1690,7 @@ const App: React.FC = () => {
                       </button>
                       <button 
                           onClick={() => { setShowRevivePrompt(false); setIsGameOver(true); playLevelFailSound(); }}
-                          className="text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold py-2"
+                          className="text-zinc-500 hover:text-zinc-800 dark:hover:text-white font-bold py-2"
                       >
                           {t('giveUp')}
                       </button>
@@ -1706,9 +1698,8 @@ const App: React.FC = () => {
               </div>
           )}
 
-          {/* Game Over / Fail Overlay */}
           {isGameOver && !levelResult && !showRevivePrompt && (
-            <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/85 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
+            <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl z-20 animate-in zoom-in-95 duration-300 p-6 text-center">
               {isNewHighScore ? (
                 <div className="flex flex-col items-center animate-bounce mb-2">
                   <Crown size={48} className="text-yellow-500 dark:text-yellow-400 fill-yellow-500/20 dark:fill-yellow-400/20" />
@@ -1718,20 +1709,20 @@ const App: React.FC = () => {
                 <AlertCircle size={48} className="text-red-500 mb-4" />
               )}
               
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">
+              <h2 className="text-3xl font-black text-zinc-900 dark:text-white mb-2">
                 {isLevelMode ? t('levelFailed') : t('gameOver')}
               </h2>
               
               <div className={`
                 px-6 py-3 rounded-xl border mb-6 flex flex-col items-center
-                ${isNewHighScore ? 'bg-yellow-100 dark:bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'}
+                ${isNewHighScore ? 'bg-yellow-100 dark:bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'}
               `}>
-                <span className="text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider">{t('finalScore')}</span>
-                <span className={`text-3xl font-mono ${isNewHighScore ? 'text-yellow-600 dark:text-yellow-400' : 'text-slate-900 dark:text-white'}`}>{score.toLocaleString()}</span>
+                <span className="text-zinc-500 dark:text-zinc-400 text-xs uppercase font-bold tracking-wider">{t('finalScore')}</span>
+                <span className={`text-3xl font-mono ${isNewHighScore ? 'text-yellow-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-white'}`}>{score.toLocaleString()}</span>
               </div>
 
               {isLevelMode && (
-                 <div className="text-slate-500 dark:text-slate-400 text-xs mb-6 max-w-xs">
+                 <div className="text-zinc-500 dark:text-zinc-400 text-xs mb-6 max-w-xs">
                     {t('goal')}: {currentLevel?.targetScore.toLocaleString()} {t('ptsForCrown')}
                  </div>
               )}
@@ -1754,7 +1745,7 @@ const App: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => isLevelMode ? setView('level-select') : setView('home')}
-                  className="text-slate-500 hover:text-slate-800 dark:hover:text-white text-sm font-bold py-2 transition-colors"
+                  className="text-zinc-500 hover:text-zinc-800 dark:hover:text-white text-sm font-bold py-2 transition-colors"
                 >
                   {isLevelMode ? t('backToLevels') : t('backToMenu')}
                 </button>
@@ -1762,11 +1753,10 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Reset Confirmation Overlay */}
           {showResetConfirm && (
-             <div className="absolute inset-0 bg-white/95 dark:bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl z-30 p-6 text-center animate-in fade-in duration-200">
-               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('quitGame')}?</h2>
-               <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">{t('progressLost')}</p>
+             <div className="absolute inset-0 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl z-30 p-6 text-center animate-in fade-in duration-200">
+               <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{t('quitGame')}?</h2>
+               <p className="text-zinc-500 dark:text-zinc-400 mb-6 text-sm">{t('progressLost')}</p>
                <div className="flex flex-col gap-3 w-full">
                  <button 
                    onClick={() => startNewGame(gameMode, currentLevel)}
@@ -1776,13 +1766,13 @@ const App: React.FC = () => {
                  </button>
                  <button 
                    onClick={() => setView('home')}
-                   className="w-full py-3 rounded-lg font-bold text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                   className="w-full py-3 rounded-lg font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors"
                  >
                    {t('exitToHome')}
                  </button>
                  <button 
                    onClick={() => setShowResetConfirm(false)}
-                   className="w-full py-3 rounded-lg font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
+                   className="w-full py-3 rounded-lg font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
                  >
                    {t('cancel')}
                  </button>
@@ -1799,30 +1789,30 @@ const App: React.FC = () => {
                <button 
                  onClick={handleUndo} 
                  disabled={history.length === 0 || !!clearingLines || showResetConfirm || getCurrentInventory('undos') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-slate-800/80 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50 shadow-sm backdrop-blur-sm"
+                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-800 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-700/50 shadow-sm backdrop-blur-sm"
                >
                  <RotateCcw size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-100 dark:border-slate-950">{getCurrentInventory('undos')}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full border-2 border-zinc-100 dark:border-zinc-950">{getCurrentInventory('undos')}</span>
                </button>
                
-               {/* Rotate (Replaces Redo) */}
+               {/* Rotate */}
                <button 
                  onClick={handleRotate} 
                  disabled={selectedShapeIdx === null || !!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('rotators') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-slate-800/80 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50 shadow-sm backdrop-blur-sm"
+                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-800 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-700/50 shadow-sm backdrop-blur-sm"
                >
                  <RefreshCw size={20} className={selectedShapeIdx !== null ? "animate-spin-once" : ""} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-100 dark:border-slate-950">{getCurrentInventory('rotators')}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-zinc-100 dark:border-zinc-950">{getCurrentInventory('rotators')}</span>
                </button>
                
-               {/* Refresh/Shuffle */}
+               {/* Refresh */}
                <button 
                  onClick={handleRefresh} 
                  disabled={!!clearingLines || showResetConfirm || isGameOver || getCurrentInventory('refreshes') <= 0 || !!levelResult || showRevivePrompt}
-                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-slate-800/80 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50 shadow-sm backdrop-blur-sm"
+                 className="relative group p-3 bg-white/80 hover:bg-white dark:bg-zinc-800/80 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white dark:hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-zinc-800 transition-all active:scale-95 border border-zinc-200 dark:border-zinc-700/50 shadow-sm backdrop-blur-sm"
                >
                  <Shuffle size={20} />
-                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-slate-100 dark:border-slate-950">{getCurrentInventory('refreshes')}</span>
+                 <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-green-600 text-white text-[10px] font-bold rounded-full border-2 border-zinc-100 dark:border-zinc-950">{getCurrentInventory('refreshes')}</span>
                </button>
              </div>
   
@@ -1838,7 +1828,7 @@ const App: React.FC = () => {
               </button>
           </div>
           
-          <div className="bg-slate-200/50 dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800/50 pb-2 backdrop-blur-sm">
+          <div className="bg-zinc-200/50 dark:bg-zinc-900/40 rounded-3xl border border-zinc-200 dark:border-zinc-800/50 pb-2 backdrop-blur-sm">
             <ShapeTray 
               shapes={availableShapes} 
               selectedIndex={selectedShapeIdx} 
@@ -1870,47 +1860,8 @@ const App: React.FC = () => {
     );
   };
 
-  const renderLeaderboard = () => (
-    <div className={`flex flex-col items-center min-h-screen p-4 w-full max-w-md mx-auto animate-in slide-in-from-right duration-300 relative z-10`}>
-      <div className="w-full flex items-center justify-between mb-8">
-        <button onClick={() => setView('home')} className="p-2 bg-white/80 hover:bg-white dark:bg-slate-800/80 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm backdrop-blur-sm"><ArrowLeft size={24} /></button>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><ListOrdered className="text-purple-500" /> {t('myBestScores')}</h2>
-        {leaderboard.length > 0 ? (
-          <button onClick={clearLeaderboard} className="p-2 bg-white/80 hover:bg-red-50 dark:bg-slate-800/80 rounded-lg text-red-500 hover:text-red-600 transition-colors border border-slate-200 dark:border-slate-700 shadow-sm backdrop-blur-sm"><Trash2 size={20} /></button>
-        ) : <div className="w-10"></div>}
-      </div>
-
-      <div className="w-full bg-white/80 dark:bg-slate-900/80 rounded-3xl p-4 shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[70vh] backdrop-blur-md">
-        {leaderboard.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 italic flex flex-col items-center gap-4">
-            <Trophy size={48} className="text-slate-300 dark:text-slate-700" />
-            <p>{t('noGamesYet')}</p>
-          </div>
-        ) : (
-          <div className="space-y-2 overflow-y-auto pr-1 visible-scrollbar">
-            {leaderboard.map((record, i) => {
-              const dateObj = new Date(record.timestamp);
-              return (
-                <div key={i} className={`flex items-center justify-between p-3 rounded-2xl ${i === 0 ? 'bg-gradient-to-r from-yellow-50 to-white dark:from-yellow-500/20 dark:to-transparent border border-yellow-200 dark:border-yellow-500/30' : i === 1 ? 'bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700' : i === 2 ? 'bg-orange-50 dark:bg-slate-800/50 border border-orange-100 dark:border-slate-800' : 'bg-transparent border-b border-slate-100 dark:border-slate-800'}`}>
-                  <div className="flex items-center gap-4">
-                     <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shrink-0 ${i === 0 ? 'bg-yellow-500 text-white dark:text-black' : i === 1 ? 'bg-slate-400 text-white dark:text-black' : i === 2 ? 'bg-orange-700 text-white' : 'text-slate-400 dark:text-slate-500'}`}>{i + 1}</div>
-                     <div className="flex flex-col">
-                        <span className="text-slate-900 dark:text-slate-200 font-mono text-lg leading-tight">{record.score.toLocaleString()}</span>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500"><Calendar size={10} /><span>{dateObj.toLocaleDateString()}</span></div>
-                     </div>
-                  </div>
-                  {i === 0 && <Trophy size={16} className="text-yellow-500" />}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
-    <div className={`${theme} min-h-screen font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-500 ease-in-out bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100`}>
+    <div className={`min-h-screen font-sans selection:bg-blue-500/30 touch-none overflow-hidden transition-colors duration-500 ease-in-out bg-white dark:bg-black text-black dark:text-white`}>
       {view === 'home' && renderHome()}
       {view === 'leaderboard' && renderLeaderboard()}
       {view === 'world-select' && renderWorldSelect()}

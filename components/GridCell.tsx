@@ -15,10 +15,10 @@ const GridCell: React.FC<GridCellProps> = ({ color, isGhost, isHint, isPlacement
   let animation = '';
   let styleBackgroundColor: string | undefined = undefined;
   
-  // Refined styling for premium feel
-  // Light: slightly darker than white container to show grid structure
-  // Dark: semi-transparent slate to blend with gradient
-  let tailwindBgClass = 'bg-slate-200 dark:bg-slate-800/50 border-slate-300 dark:border-slate-700/30'; 
+  // Strict Black/White styling
+  // Light: zinc-100 for empty
+  // Dark: zinc-900/50 for empty
+  let tailwindBgClass = 'bg-zinc-100 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800'; 
 
   if (isPlacement) {
     animation = 'animate-place';
